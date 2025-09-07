@@ -2,8 +2,6 @@ package handler
 
 import (
 	"Backend/internal/app/repository"
-	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -19,86 +17,24 @@ func NewHandler(r *repository.Repository) *Handler {
 	}
 }
 
-func (h *Handler) GetReactions(ctx *gin.Context) {
-	var reactions []repository.Reaction
-	var err error
-
-	searchQuery := ctx.Query("query")
-	if searchQuery == "" {
-		reactions, err = h.Repository.GetReactions()
-		if err != nil {
-			logrus.Error(err)
-		}
-	} else {
-		reactions, err = h.Repository.GetReactionsByTitle(searchQuery)
-		if err != nil {
-			logrus.Error(err)
-		}
-	}
-
-	var calculationsCount int
-	var currCalculationId int
-	calculationsCount, currCalculationId, err = h.Repository.CurrentCalculation()
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "reactions.html", gin.H{
-		"reactions":                reactions,
-		"query":                    searchQuery,
-		"reactions_in_calculation": calculationsCount,
-		"mass_calculation_id":      currCalculationId,
-	})
+// RegisterHandler Функция, в которой мы отдельно регистрируем маршруты, чтобы не писать все в одном месте
+func (h *Handler) RegisterHandler(router *gin.Engine) {
+	router.GET("/reactions", h.GetReactions)
+	router.GET("/reactions/:id", h.GetReaction)
+	router.GET("/mass-calculation/:id", h.GetMassCalculation)
 }
 
-func (h *Handler) GetReaction(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	reaction, err := h.Repository.GetReaction(id)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	var calculationsCount int
-	var currCalculationId int
-	calculationsCount, currCalculationId, err = h.Repository.CurrentCalculation()
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "single_reaction.html", gin.H{
-		"reaction": reaction,
-		"reactions_in_calculation": calculationsCount,
-		"mass_calculation_id":      currCalculationId,
-	})
+// RegisterStatic То же самое, что и с маршрутами, регистрируем статику
+func (h *Handler) RegisterStatic(router *gin.Engine) {
+	router.LoadHTMLGlob("templates/*")
+	router.Static("/static/styles", "./static/styles")
 }
 
-func (h *Handler) GetMassCalculation(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	reactions, err := h.Repository.GetCalculationReactions(id)
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	var calculationsCount int
-	var currCalculationId int
-	calculationsCount, currCalculationId, err = h.Repository.CurrentCalculation()
-	if err != nil {
-		logrus.Error(err)
-	}
-
-	ctx.HTML(http.StatusOK, "mass_calculation.html", gin.H{
-		"reactions": reactions,
-		"reactions_in_calculation": calculationsCount,
-		"mass_calculation_id":      currCalculationId,
+// errorHandler для более удобного вывода ошибок
+func (h *Handler) errorHandler(ctx *gin.Context, errorStatusCode int, err error) {
+	logrus.Error(err.Error())
+	ctx.JSON(errorStatusCode, gin.H{
+		"status":      "error",
+		"description": err.Error(),
 	})
 }

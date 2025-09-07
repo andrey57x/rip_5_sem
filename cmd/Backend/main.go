@@ -1,12 +1,34 @@
 package main
 
 import (
-	"Backend/internal/api"
-	"log"
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
+	"Backend/internal/app/config"
+	"Backend/internal/app/dsn"
+	"Backend/internal/app/handler"
+	"Backend/internal/app/repository"
+	"Backend/internal/pkg"
 )
 
 func main() {
-	log.Println("Application start!")
-	api.StartServer()
-	log.Println("Application terminated!")
+	router := gin.Default()
+	conf, err := config.NewConfig()
+	if err != nil {
+		logrus.Fatalf("error loading config: %v", err)
+	}
+
+	postgresString := dsn.FromEnv()
+	fmt.Println(postgresString)
+
+	rep, errRep := repository.NewRepository(postgresString)
+	if errRep != nil {
+		logrus.Fatalf("error initializing repository: %v", errRep)
+	}
+
+	hand := handler.NewHandler(rep)
+
+	application := pkg.NewApp(conf, router, hand)
+	application.RunApp()
 }
