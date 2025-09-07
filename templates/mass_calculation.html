@@ -1,0 +1,48 @@
+<html lang="en">
+<head>
+    <title>Подсчет массы</title>
+    <link rel="stylesheet" href="/static/styles/mass_calculation_style.css">
+</head>
+<body>
+    <header>
+        <div class="header-div">
+            <a href="/reactions"><img src="http://localhost:9000/img/home.png" alt="Домой"></a>
+        </div>
+    </header>
+    <div class="input-box">
+        <div class="input-elem mass">
+            <p>Введите массу выхода:</p>
+            <input type="number">
+        </div>
+        <div class="input-elem output">
+            <p>Введите процент выхода:</p>
+            <input type="number">
+        </div>
+        <!-- <button class="submit">Оформить</button> -->
+    </div>
+    <div class="reactions">
+        {{ range .reactions }}
+        <div class="card-comment">
+            <div class="reaction-card">
+                <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
+                <div class="non-image">
+                    <p class="title">{{ .Title }}</p>
+                    <p class="formula">Формула реакции: {{ .Formula }}</p>
+                    <p class="koef">Коэффициент преобразования: {{ .ConversationFactor }}</p>
+                    <a href="/reactions/{{ .ID }}"><button>Подробнее</button></a>
+                </div>
+            </div>
+            <div class="comment">
+                <input id="comment{{ .ID }}" type="text" placeholder="Комментарий">
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    <!-- {{if ne .reactions_in_calculation 0}} -->
+    <div class="mass-calculation-link">
+        <a href="/mass-calculation/{{ .mass_calculation_id }}"><img src="http://localhost:9000/img/cart.png" alt=""></a>
+        <div class="counter">{{ .reactions_in_calculation }}</div>
+    </div>
+    <!-- {{end}} -->
+</body>
+</html>

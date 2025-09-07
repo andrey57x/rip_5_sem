@@ -1,0 +1,31 @@
+<html lang="en">
+<head>
+    <title>Реакция №{{ .reaction.ID }}</title>
+    <link rel="stylesheet" href="/static/styles/single_reaction_style.css">
+</head>
+<body>
+    <header>
+        <div class="header-div">
+            <a href="/reactions"><img src="http://localhost:9000/img/home.png" alt="Домой"></a>
+        </div>
+    </header>
+
+    <h1 class="title">{{.reaction.Title}}</h1>
+
+    <div class="content">
+        <img src="http://localhost:9000/img/{{ .reaction.ImgLink }}" alt="{{.reaction.Title}}">
+        <div class="text">
+            <p class="formula">Формула реакции: {{ .reaction.Formula }}</p>
+            <p class="koef">Коэффициент преобразования: {{ .reaction.ConversationFactor }}</p>
+            <p class="description">Описание процесса: {{ .reaction.Description }}</p>
+        </div>
+    </div>
+
+    <!-- {{if ne .reactions_in_calculation 0}} -->
+    <div class="mass-calculation-link">
+        <a href="/mass-calculation/{{ .mass_calculation_id }}"><img src="http://localhost:9000/img/cart.png" alt=""></a>
+        <div class="counter">{{ .reactions_in_calculation }}</div>
+    </div>
+    <!-- {{end}} -->
+</body>
+</html>
