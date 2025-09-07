@@ -96,6 +96,10 @@ form input {
     margin-left: auto;
     margin-right: auto;
 }
+a {
+    text-decoration: none;
+    color: black;
+}
 
 
 .mass-calculation-link img {

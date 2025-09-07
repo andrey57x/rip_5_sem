@@ -20,12 +20,5 @@
             <p class="description">Описание процесса: {{ .reaction.Description }}</p>
         </div>
     </div>
-
-    <!-- {{if ne .reactions_in_calculation 0}} -->
-    <div class="mass-calculation-link">
-        <a href="/mass-calculation/{{ .mass_calculation_id }}"><img src="http://localhost:9000/img/cart.png" alt=""></a>
-        <div class="counter">{{ .reactions_in_calculation }}</div>
-    </div>
-    <!-- {{end}} -->
 </body>
 </html>

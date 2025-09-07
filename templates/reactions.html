@@ -15,12 +15,13 @@
     </form>
     <div class="reactions">
         {{ range .reactions }}
-        <div class="reaction-card">
-            <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
-            <p class="title">{{ .Title }}</p>
-            <p class="formula">Формула реакции: {{ .Formula }}</p>
-            <a href="/reactions/{{ .ID }}"><button>Подробнее</button></a>
-        </div>
+        <a href="/reactions/{{ .ID }}">
+            <div class="reaction-card">
+                <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
+                <p class="title">{{ .Title }}</p>
+                <p class="formula">Формула реакции: {{ .Formula }}</p>
+            </div>
+        </a>
         {{ end }}
     </div>
     <!-- {{if ne .reactions_in_calculation 0}} -->

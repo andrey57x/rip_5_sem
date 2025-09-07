@@ -71,11 +71,11 @@ input {
     flex-direction: column;
     justify-content: space-around;
     flex-wrap: wrap;
-    width: 1210px;
     margin-left: auto;
     margin-right: auto;
+    width: 1310px;
 }
-.card-comment {
+.card-amount {
     display: flex;
     align-items: center;
     flex-direction: row;
@@ -87,9 +87,10 @@ input {
     align-items: center;
     flex-direction: row;
     background-color: white;
-    border-radius: 6px;
+    border-radius: 50px;
     width: 1000px;
     height: 320px;
+    margin-right: 10px;
 }
 .non-image {
     display: flex;
@@ -109,36 +110,21 @@ input {
     height: 320px;
     margin: 0px;
 }
-.comment input {
-    height: 320px;
-    width: 200px;
-    border-width: 0px;
-}
-
-
-.mass-calculation-link img {
-    z-index: 998;
-    position: fixed;
-    left: 30px;
-    bottom: 30px;
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    background-color: white;
-}
-.mass-calculation-link .counter {
-    z-index: 999;
-    position: fixed;
-    border-radius: 50%;
-    background-color: #ff1212aa;
-    width: 30px;
-    height: 30px;
-    font-size: 1.5rem;
-    left: 100px;
-    bottom: 100px;
-    
+.amount {
+    width: 300px;
     display: flex;
-    text-align: center;
-    justify-content: center;
     align-items: center;
+    flex-direction: column;
+}
+.amount input {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.amount p {
+    text-align: center;
+}
+a {
+    text-decoration: none;
+    color: black;
 }
