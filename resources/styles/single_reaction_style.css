@@ -60,6 +60,9 @@ header img {
     text-align: center;
     margin-bottom: 50px;
 }
-.formula, .koef {
+.content p {
     text-align: center;
+}
+.content .description {
+    text-align: start;
 }

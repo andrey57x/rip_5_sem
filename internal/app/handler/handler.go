@@ -23,14 +23,14 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 	var reactions []repository.Reaction
 	var err error
 
-	searchQuery := ctx.Query("query")
-	if searchQuery == "" {
+	searchReaction := ctx.Query("reaction_title")
+	if searchReaction == "" {
 		reactions, err = h.Repository.GetReactions()
 		if err != nil {
 			logrus.Error(err)
 		}
 	} else {
-		reactions, err = h.Repository.GetReactionsByTitle(searchQuery)
+		reactions, err = h.Repository.GetReactionsByTitle(searchReaction)
 		if err != nil {
 			logrus.Error(err)
 		}
@@ -45,7 +45,7 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 
 	ctx.HTML(http.StatusOK, "reactions.html", gin.H{
 		"reactions":                reactions,
-		"query":                    searchQuery,
+		"reaction_title":           searchReaction,
 		"reactions_in_calculation": calculationsCount,
 		"mass_calculation_id":      currCalculationId,
 	})
@@ -71,7 +71,7 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, "single_reaction.html", gin.H{
-		"reaction": reaction,
+		"reaction":                 reaction,
 		"reactions_in_calculation": calculationsCount,
 		"mass_calculation_id":      currCalculationId,
 	})
@@ -97,7 +97,7 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, "mass_calculation.html", gin.H{
-		"reactions": reactions,
+		"reactions":                reactions,
 		"reactions_in_calculation": calculationsCount,
 		"mass_calculation_id":      currCalculationId,
 	})

@@ -10,10 +10,6 @@
         </div>
     </header>
     <div class="input-box">
-        <div class="input-elem mass">
-            <p>Введите массу выхода (в граммах):</p>
-            <input type="number" step="100" value="1000">
-        </div>
         <div class="input-elem output">
             <p>Введите коэффициент выхода (от 0 до 1):</p>
             <input type="number" step="0.05" value="1">
@@ -21,21 +17,30 @@
         <!-- <button class="submit">Оформить</button> -->
     </div>
     <div class="reactions">
+        <div class="text">
+            <p class="column">Название:</p>
+            <p class="column">Исходный реагент: {{ .Reagent }}</p>
+            <p class="column">Целевой продукт: {{ .Product }}</p>
+            <p class="column">Коэффициент преобразования: {{ .ConversationFactor }}</p>
+        </div>
         {{ range .reactions }}
-        <div class="card-amount">
+        <div class="big-card">
             <a href="/reactions/{{ .ID }}">
             <div class="reaction-card">
                 <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
-                <div class="non-image">
+                <div class="text">
                     <p class="title">{{ .Title }}</p>
-                    <p class="formula">Формула реакции: {{ .Formula }}</p>
-                    <p class="koef">Коэффициент преобразования: {{ .ConversationFactor }}</p>
+                    <p class="reagent">{{ .Reagent }}</p>
+                    <p class="product">{{ .Product }}</p>
+                    <p class="koef">{{ .ConversationFactor }}</p>
                 </div>
             </div>
             </a>
-            <div class="amount">
-                <p>Введите количество:</p>
-                <input type="number" value="1">
+            <div class="mass">
+                <p>Введите массу выхода<br>(в граммах):</p>
+                <input type="number" step="100" value="1000">
+                <p>Входная масса<br>(в граммах):</p>
+                <output class="result">
             </div>
         </div>
         {{ end }}

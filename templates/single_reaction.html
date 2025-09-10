@@ -15,7 +15,8 @@
     <div class="content">
         <img src="http://localhost:9000/img/{{ .reaction.ImgLink }}" alt="{{.reaction.Title}}">
         <div class="text">
-            <p class="formula">Формула реакции: {{ .reaction.Formula }}</p>
+            <p class="reagent">Исходный реагент: {{ .reaction.Reagent }}</p>
+            <p class="product">Целевой продукт: {{ .reaction.Product }}</p>
             <p class="koef">Коэффициент преобразования: {{ .reaction.ConversationFactor }}</p>
             <p class="description">Описание процесса: {{ .reaction.Description }}</p>
         </div>
