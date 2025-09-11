@@ -10,24 +10,26 @@
         </div>
     </header>
     <form action="/reactions" method="GET" class="text-input">
-        <input type="text" name="query" placeholder="Введите название реакции" value="{{ .query }}">
+        <input type="text" name="reaction_title" placeholder="Введите название реакции" value="{{ .reaction_title }}">
         <button type="submit">Поиск</button>
     </form>
     <div class="reactions">
         {{ range .reactions }}
-        <div class="reaction-card">
-            <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
-            <p class="title">{{ .Title }}</p>
-            <p class="formula">Формула реакции: {{ .Formula }}</p>
-            <a href="/reactions/{{ .ID }}"><button>Подробнее</button></a>
-        </div>
+        <a href="/reactions/{{ .ID }}">
+            <div class="reaction-card">
+                <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
+                <p class="title">{{ .Title }}</p>
+                <p class="reagent">Исходный реагент: {{ .Reagent }}</p>
+                <p class="product">Целевой продукт: {{ .Product }}</p>
+            </div>
+        </a>
         {{ end }}
     </div>
-    <!-- {{if ne .reactions_in_calculation 0}} -->
+    {{if ne .reactions_in_calculation 0}}
     <div class="mass-calculation-link">
-        <a href="/mass-calculation/{{ .calculation_id }}"><img src="http://localhost:9000/img/cart.png" alt=""></a>
+        <a href="/mass-calculation/{{ .mass_calculation_id }}"><img src="http://localhost:9000/img/calculator.png" alt=""></a>
         <div class="counter">{{ .reactions_in_calculation }}</div>
     </div>
-    <!-- {{end}} -->
+    {{end}}
 </body>
 </html>

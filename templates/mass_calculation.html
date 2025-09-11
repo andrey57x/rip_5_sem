@@ -10,30 +10,37 @@
         </div>
     </header>
     <div class="input-box">
-        <div class="input-elem mass">
-            <p>Введите массу выхода:</p>
-            <input type="number">
-        </div>
         <div class="input-elem output">
-            <p>Введите процент выхода:</p>
-            <input type="number">
+            <p>Введите коэффициент выхода (от 0 до 1):</p>
+            <input type="number" step="0.05" value="1">
         </div>
         <!-- <button class="submit">Оформить</button> -->
     </div>
     <div class="reactions">
+        <div class="text">
+            <p class="column">Название:</p>
+            <p class="column">Исходный реагент: {{ .Reagent }}</p>
+            <p class="column">Целевой продукт: {{ .Product }}</p>
+            <p class="column">Коэффициент преобразования: {{ .ConversationFactor }}</p>
+        </div>
         {{ range .reactions }}
-        <div class="card-comment">
+        <div class="big-card">
+            <a href="/reactions/{{ .ID }}">
             <div class="reaction-card">
                 <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
-                <div class="non-image">
+                <div class="text">
                     <p class="title">{{ .Title }}</p>
-                    <p class="formula">Формула реакции: {{ .Formula }}</p>
-                    <p class="koef">Коэффициент преобразования: {{ .ConversationFactor }}</p>
-                    <a href="/reactions/{{ .ID }}"><button>Подробнее</button></a>
+                    <p class="reagent">{{ .Reagent }}</p>
+                    <p class="product">{{ .Product }}</p>
+                    <p class="koef">{{ .ConversationFactor }}</p>
                 </div>
             </div>
-            <div class="comment">
-                <input id="comment{{ .ID }}" type="text" placeholder="Комментарий">
+            </a>
+            <div class="mass">
+                <p>Введите массу выхода<br>(в граммах):</p>
+                <input type="number" step="100" value="1000">
+                <p>Входная масса<br>(в граммах):</p>
+                <output class="result">
             </div>
         </div>
         {{ end }}
