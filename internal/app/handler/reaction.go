@@ -14,32 +14,31 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 	var reactions []ds.Reaction
 	var err error
 
-	searchQuery := ctx.Query("query") // получаем значение из нашего поля
-	if searchQuery == "" {            // если поле поиска пусто, то просто получаем из репозитория все записи
+	searchReaction := ctx.Query("reaction_title") // получаем значение из нашего поля
+	if searchReaction == "" {                     // если поле поиска пусто, то просто получаем из репозитория все записи
 		reactions, err = h.Repository.GetReactions()
 		if err != nil {
 			logrus.Error(err)
 		}
 	} else {
-		reactions, err = h.Repository.GetReactionsByTitle(searchQuery) // в ином случае ищем заказ по заголовку
+		reactions, err = h.Repository.GetReactionsByTitle(searchReaction) // в ином случае ищем заказ по заголовку
 		if err != nil {
 			logrus.Error(err)
 		}
 	}
 
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		logrus.Error(err)
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
+	calculation, _ := h.Repository.CheckCurrentCalculationDraft(h.Repository.GetUser())
+
 	ctx.HTML(http.StatusOK, "reactions.html", gin.H{
 		"reactions":                reactions,
-		"query":                    searchQuery,
+		"reaction_title":           searchReaction,
 		"reactions_in_calculation": h.Repository.GetCartCount(),
-		"calculation_id":           1,
+		"calculation_id":           calculation.ID,
 	})
 }
 
@@ -48,19 +47,13 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	// через двоеточие мы указываем параметры, которые потом сможем считать через функцию выше
 	id, err := strconv.Atoi(idStr) // так как функция выше возвращает нам строку, нужно ее преобразовать в int
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		logrus.Error(err)
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	reaction, err := h.Repository.GetReaction(id)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		logrus.Error(err)
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -69,28 +62,25 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) GetMassCalculation(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := strconv.Atoi(idStr)
+func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
+	calculation, err := h.Repository.GetCalculationDraft(h.Repository.GetUser())
+	calculationID := calculation.ID
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		logrus.Error(err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	reactions, calculation, err := h.Repository.GetCalculationReactions(id)
+	reactionID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
-		logrus.Error(err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "mass_calculation.html", gin.H{
-		"reactions": reactions,
-		"calculation": calculation,
-	})
+	err = h.Repository.AddReactionToCalculation(calculationID, reactionID)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Redirect(http.StatusFound, "/reactions")
 }

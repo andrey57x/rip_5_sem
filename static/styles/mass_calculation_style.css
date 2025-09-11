@@ -47,7 +47,7 @@ input {
 
 
 .input-box {
-    width: 40%;
+    width: 50%;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -64,6 +64,16 @@ input {
     justify-content: space-between;
     align-items: center;
 }
+.delete {
+    position: fixed;
+    right: 30px;
+    top: 150px;
+    height: 80px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
 
 
 .reactions {
@@ -71,33 +81,26 @@ input {
     flex-direction: column;
     justify-content: space-around;
     flex-wrap: wrap;
-    width: 1210px;
     margin-left: auto;
     margin-right: auto;
+    width: 1510px;
 }
-.card-comment {
+.big-card {
     display: flex;
     align-items: center;
     flex-direction: row;
     justify-content: space-between;
     margin-bottom: 20px;
+    margin-top: 20px;
 }
 .reaction-card {
     display: flex;
     align-items: center;
-    flex-direction: row;
-    background-color: white;
-    border-radius: 6px;
-    width: 1000px;
-    height: 320px;
-}
-.non-image {
-    display: flex;
-    align-items: center;
     flex-direction: column;
-    justify-content: space-around;
-    height: 100%;
-    width: 600px;
+    justify-content: space-between;
+    background-color: #ffffffaa;
+    border-radius: 50px;
+    width: 1200px;
 }
 .reaction-card p {
     height: 50px;
@@ -109,8 +112,53 @@ input {
     height: 320px;
     margin: 0px;
 }
-.comment input {
+.text {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    width: 1200px;
+}
+.text p {
+    width: 300px;
+    height: 100px;
+    border-radius: 50px;
+    background-color: #ddd;
+
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+.column{
+    text-align: center;
+}
+.mass {
+    width: 300px;
     height: 320px;
-    width: 200px;
-    border-width: 0px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: space-around;
+}
+.mass input {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+.mass p {
+    text-align: center;
+    margin: 0px;
+}
+a {
+    text-decoration: none;
+    color: black;
+}
+.result {
+    width: 60%;
+    height: 35px;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: white;
+    border-radius: 5px;
+    border: 1px solid black
 }

@@ -12,10 +12,13 @@
     <div class="input-box">
         <div class="input-elem output">
             <p>Введите коэффициент выхода (от 0 до 1):</p>
-            <input type="number" step="0.05" value="1">
+            <input type="number" step="0.05" value="{{ .calculation.OutputKoef }}">
         </div>
         <!-- <button class="submit">Оформить</button> -->
     </div>
+    <form action="/calculation/{{.calculation.ID}}/delete" method="POST">
+        <button type="submit" class="delete">Удалить расчет</button>
+    </form>
     <div class="reactions">
         <div class="text">
             <p class="column">Название:</p>
@@ -38,9 +41,9 @@
             </a>
             <div class="mass">
                 <p>Введите массу выхода<br>(в граммах):</p>
-                <input type="number" step="100" value="1000">
+                <input type="number" step="100" value="123">
                 <p>Входная масса<br>(в граммах):</p>
-                <output class="result">
+                <output class="result"></output>
             </div>
         </div>
         {{ end }}

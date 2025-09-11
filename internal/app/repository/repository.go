@@ -20,3 +20,8 @@ func NewRepository(dsn string) (*Repository, error) {
 		db: db,
 	}, nil
 }
+
+
+func (r *Repository) GetUser() (int) {
+	return 1
+}

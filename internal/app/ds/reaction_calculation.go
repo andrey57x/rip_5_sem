@@ -6,7 +6,8 @@ type ReactionCalculation struct {
 	ReactionID    int `gorm:"not null;uniqueIndex:idx_reaction_calculation"`
 	CalculationID int `gorm:"not null;uniqueIndex:idx_reaction_calculation"`
 
-	Amount int `gorm:"default:1"`
+	OutputMass float32 `gorm:"float;not null"`
+	InputMass  float32 `gorm:"float"`
 
 	Reaction    Reaction    `gorm:"foreignKey:ReactionID"`
 	Calculation Calculation `gorm:"foreignKey:CalculationID"`
