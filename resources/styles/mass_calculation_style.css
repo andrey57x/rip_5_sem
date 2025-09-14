@@ -1,7 +1,14 @@
 body {
+    --header-color: #5389ae;
+    --body-color: #ddeeff;
+    --button-color: #586079;
+    --hover-color: #8d6a86;
+    --main-color: #ffffff;
+    --non-active-color: #eee;
+
     font-size: 1.5rem;
     color: black;
-    background-color: #ddeeff;
+    background-color: var(--body-color);
     padding: 0px;
     margin: 0px;
 }
@@ -12,17 +19,17 @@ button {
     width: 150px;
     height: 50px;
     border-radius: 5px;
-    color: white;
-    background-color: #586079;
+    color: var(--main-color);
+    background-color: var(--button-color);
 }
 button:hover {
-    background-color: #8d6a86;
+    background-color: var(--hover-color);
     cursor: pointer;
 }
 
 
 header {
-    background-color: #5389ae;
+    background-color: var(--header-color);
     height: 100px;
     width: 100%;
     margin-bottom: 20px;
@@ -43,6 +50,7 @@ header img {
 input {
     font-size: 1.5rem;
     border-radius: 5px;
+    text-align: center;
 }
 
 
@@ -63,6 +71,58 @@ input {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+}
+.delete {
+    position: fixed;
+    right: 30px;
+    top: 150px;
+    height: 80px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.text {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    width: 1000px;
+    margin-left: 100px;
+    padding: 10px;
+    background-color: var(--header-color);
+    border-radius: 10px;
+}
+.text-item {
+    width: 250px;
+    height: 100px;
+
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+.text p {
+    background-color: var(--main-color);
+    height: 70px;
+
+    padding: 5px;
+    border-radius: 5px;
+    border-style: solid;
+    border-width: 1px;
+
+    display: flex;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
+}
+.reaction-card .text {
+    font-size: 1.25rem;
+    margin: 0px;
+}
+.reaction-card .text p {
+    font-size: 1.25rem;
 }
 
 
@@ -88,9 +148,10 @@ input {
     align-items: center;
     flex-direction: column;
     justify-content: space-between;
-    background-color: #ffffffaa;
+    background-color: var(--main-color);
     border-radius: 50px;
     width: 1200px;
+    padding-bottom: 10px;
 }
 .reaction-card p {
     height: 50px;
@@ -101,26 +162,6 @@ input {
     width: 400px;
     height: 320px;
     margin: 0px;
-}
-.text {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    width: 1200px;
-}
-.text p {
-    width: 300px;
-    height: 100px;
-    border-radius: 50px;
-    background-color: #ddd;
-
-    display: flex;
-    text-align: center;
-    justify-content: center;
-    align-items: center;
-}
-.column{
-    text-align: center;
 }
 .mass {
     width: 300px;
@@ -148,7 +189,8 @@ a {
     height: 35px;
     margin-left: auto;
     margin-right: auto;
-    background-color: white;
+    background-color: var(--non-active-color);
     border-radius: 5px;
-    border: 1px solid black
+    border: 1px solid black;
+    text-align: center;
 }

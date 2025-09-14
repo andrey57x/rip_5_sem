@@ -18,10 +18,10 @@
     </div>
     <div class="reactions">
         <div class="text">
-            <p class="column">Название:</p>
-            <p class="column">Исходный реагент: {{ .Reagent }}</p>
-            <p class="column">Целевой продукт: {{ .Product }}</p>
-            <p class="column">Коэффициент преобразования: {{ .ConversationFactor }}</p>
+            <div class="text-item"><p class="column">Название:</p></div>
+            <div class="text-item"><p class="column">Исходный реагент:</p></div>
+            <div class="text-item"><p class="column">Целевой продукт:</p></div>
+            <div class="text-item"><p class="column">Коэффициент преобразования:</p></div>
         </div>
         {{ range .reactions }}
         <div class="big-card">
@@ -29,10 +29,10 @@
             <div class="reaction-card">
                 <img src="http://localhost:9000/img/{{ .ImgLink }}" alt="{{ .Title }}">
                 <div class="text">
-                    <p class="title">{{ .Title }}</p>
-                    <p class="reagent">{{ .Reagent }}</p>
-                    <p class="product">{{ .Product }}</p>
-                    <p class="koef">{{ .ConversationFactor }}</p>
+                    <div class="text-item"><p class="title">{{ .Title }}</p></div>
+                    <div class="text-item"><p class="reagent">{{ .Reagent }}</p></div>
+                    <div class="text-item"><p class="product">{{ .Product }}</p></div>
+                    <div class="text-item"><p class="koef">{{ .ConversationFactor }}</p></div>
                 </div>
             </div>
             </a>
