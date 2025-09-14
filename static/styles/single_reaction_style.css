@@ -1,7 +1,16 @@
 body {
+    --header-color: #5389ae;
+    --body-color: #ddeeff;
+    --button-color: #586079;
+    --hover-color: #8d6a86;
+    --main-color: #ffffff;
+    --non-active-color: #eee;
+    --border-color: #113355;
+    --count-color: #ff1212aa;
+
     font-size: 2rem;
     color: black;
-    background-color: #ddeeff;
+    background-color: var(--body-color);
     padding: 0px;
     margin: 0px;
 }
@@ -12,17 +21,17 @@ button {
     width: 150px;
     height: 50px;
     border-radius: 5px;
-    color: white;
-    background-color: #586079;
+    color: var(--main-color);
+    background-color: var(--button-color);
 }
 button:hover {
-    background-color: #8d6a86;
+    background-color: var(--hover-color);
     cursor: pointer;
 }
 
 
 header {
-    background-color: #5389ae;
+    background-color: var(--header-color);
     height: 100px;
     width: 100%;
     margin-bottom: 20px;
