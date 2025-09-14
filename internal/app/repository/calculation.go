@@ -10,7 +10,7 @@ import (
 
 var noDraftError = errors.New("no draft for this user")
 
-func (r *Repository) GetCalculationReactions(id int) ([]ds.Reaction, ds.Calculation, error) {
+func (r *Repository) GetCalculationReactions(id int) ([]ds.ReactionInfo, ds.Calculation, error) {
 
 	creatorID := r.GetUser()
 	// пока что мы захардкодили id создателя заявки, в последующем вы сделаете авторизацию и будете получать его из JWT
@@ -18,21 +18,43 @@ func (r *Repository) GetCalculationReactions(id int) ([]ds.Reaction, ds.Calculat
 	var calculation ds.Calculation
 	err := r.db.Where("id = ?", id).First(&calculation).Error
 	if err != nil {
-		return []ds.Reaction{}, ds.Calculation{}, err
+		return []ds.ReactionInfo{}, ds.Calculation{}, err
 	} else if creatorID != calculation.CreatorID {
-		return []ds.Reaction{}, ds.Calculation{}, errors.New("you are not allowed")
+		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you are not allowed")
 	} else if calculation.Status == "deleted" {
-		return []ds.Reaction{}, ds.Calculation{}, errors.New("you can`t watch deleted calculations")
+		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you can`t watch deleted calculations")
 	}
 
 	var reactions []ds.Reaction
-	sub := r.db.Table("reaction_calculations").Select("reaction_id").Where("calculation_id = ?", calculation.ID)
-	err = r.db.Where("id IN (?)", sub).Find(&reactions).Error
-	if err != nil {
-		return []ds.Reaction{}, ds.Calculation{}, err
+	var reactionCalculations []ds.ReactionCalculation
+	sub := r.db.Table("reaction_calculations").Where("calculation_id = ?", calculation.ID).Find(&reactionCalculations)
+	err = r.db.Where("id IN (?)", sub.Select("reaction_id")).Find(&reactions).Error
+
+	var reactionInfos []ds.ReactionInfo
+	for _, reaction := range reactions {
+		for _, reactionCalculation := range reactionCalculations {
+			if reaction.ID == reactionCalculation.ReactionID {
+				reactionInfos = append(reactionInfos, ds.ReactionInfo{
+					ID:                 reaction.ID,
+					Title:              reaction.Title,
+					Reagent:            reaction.Reagent,
+					Product:            reaction.Product,
+					ConversationFactor: reaction.ConversationFactor,
+					ImgLink:            reaction.ImgLink,
+
+					OutputMass: reactionCalculation.OutputMass,
+					InputMass:  reactionCalculation.InputMass,
+				})
+				break
+			}
+		}
 	}
 
-	return reactions, calculation, nil
+	if err != nil {
+		return []ds.ReactionInfo{}, ds.Calculation{}, err
+	}
+
+	return reactionInfos, calculation, nil
 }
 
 // GetCartCount для получения количества услуг в заявке
