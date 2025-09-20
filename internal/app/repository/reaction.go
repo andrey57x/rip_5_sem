@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 
 	"Backend/internal/app/ds"
@@ -60,4 +61,14 @@ func (r *Repository) AddReactionToCalculation(calculationID int, reactionID int)
 		ReactionID:    reactionID,
 		CalculationID: calculationID,
 	}).Error
+}
+
+func CalculateMass(mass float32, conversationFactor, outputKoef float32) (float32, error) {
+	if conversationFactor == 0 {
+		return 0, errors.New("invalid conversation factor")
+	}
+	if outputKoef == 0 || outputKoef > 1 {
+		return 0, errors.New("invalid output koeficient")
+	}
+	return mass / conversationFactor / outputKoef, nil
 }
