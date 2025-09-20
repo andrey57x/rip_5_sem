@@ -15,13 +15,13 @@ VALUES
   ('user2', 'user2', false);
 
 INSERT INTO
-  calculations (status, date_create, creator_id)
+  calculations (status, date_create, creator_id, output_koef)
 VALUES
-  ('draft', '2025-09-07 10:15:30', 1),
-  ('formed', '2025-09-06 10:15:30', 2),
-  ('completed', '2025-09-05 10:15:30', 1),
-  ('rejected', '2025-09-04 10:15:30', 1),
-  ('deleted', '2025-09-03 10:15:30', 2);
+  ('draft', '2025-09-07 10:15:30', 1, 0.3),
+  ('formed', '2025-09-06 10:15:30', 2, 0.7),
+  ('completed', '2025-09-05 10:15:30', 1, 0.9),
+  ('rejected', '2025-09-04 10:15:30', 1, 0.5),
+  ('deleted', '2025-09-03 10:15:30', 2, 0.6);
 
 INSERT INTO
   reaction_calculations (calculation_id, reaction_id, output_mass)
