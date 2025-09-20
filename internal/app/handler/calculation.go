@@ -9,6 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetCalculation godoc
+// @Summary Get calculation
+// @Description Получить расчет по id
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "Calculation ID"
+// @Success 200 {object} apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/{id} [get]
 func (h *Handler) GetCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -40,22 +51,16 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) DeleteCalculation(ctx *gin.Context) {
-	calculationID, err := strconv.Atoi(ctx.Param("id"))
-	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	err = h.Repository.DeleteCalculation(calculationID)
-	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.Redirect(http.StatusFound, "/reactions")
-}
-
+// GetCalculationCart godoc
+// @Summary Get calculation cart
+// @Description Получить черновик расчета
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/calculation-cart [get]
 func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	reactionsCount := h.Repository.GetCartCount(h.Repository.GetUserID())
 
@@ -80,6 +85,19 @@ func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	})
 }
 
+// GetCalculations godoc
+// @Summary Get calculations
+// @Description Получить расчеты
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param from-date query string false "From date"
+// @Param to-date query string false "To date"
+// @Param status query string false "Status"
+// @Success 200 {object} []apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations [get]
 func (h *Handler) GetCalculations(ctx *gin.Context) {
 	fromDate := ctx.Query("from-date")
 	var from = time.Time{}
@@ -122,6 +140,19 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+
+// ChangeCalculation godoc
+// @Summary Change calculation
+// @Description Изменить расчет
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "Calculation ID"
+// @Param calculation body apitypes.CalculationJSON true "Change calculation"
+// @Success 200 {object} apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/{id} [put]
 func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -151,6 +182,17 @@ func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
+// FormCalculation godoc
+// @Summary Form calculation
+// @Description Сформировать расчет
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "Calculation ID"
+// @Success 200 {object} apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/{id}/form [put]
 func (h *Handler) FormCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -159,12 +201,7 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 		return
 	}
 
-	var status string
-	if ctx.Request.Method == "PUT" {
-		status = "formed"
-	} else {
-		status = "deleted"
-	}
+	status := "formed"
 
 	calculation, err := h.Repository.FormCalculation(id, status)
 
@@ -180,9 +217,51 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
-
 }
 
+// DeleteCalculation godoc
+// @Summary Delete calculation
+// @Description Удалить расчет
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "Calculation ID"
+// @Success 200 {object} apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/{id} [delete]
+func (h *Handler) DeleteCalculation(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	status := "deleted"
+
+	_, err = h.Repository.FormCalculation(id, status)
+
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "Calculation deleted"})
+}
+
+// ModerateCalculation godoc
+// @Summary Moderate calculation
+// @Description Модерировать расчет
+// @Tags calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "Calculation ID"
+// @Param status body apitypes.StatusJSON true "Moderate calculation"
+// @Success 200 {object} apitypes.CalculationJSON
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /calculations/{id}/moderate [put]
 func (h *Handler) ModerateCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)

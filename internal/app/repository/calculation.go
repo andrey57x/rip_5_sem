@@ -78,10 +78,6 @@ func (r *Repository) GetCalculationDraft(creatorID int) (ds.Calculation, bool, e
 	return calculation, false, nil
 }
 
-func (r *Repository) DeleteCalculation(id int) error {
-	return r.db.Exec("UPDATE calculations SET status = 'deleted' WHERE id = ?", id).Error
-}
-
 func (r *Repository) GetCalculations(from, to time.Time, status string) ([]ds.Calculation, error) {
 	var calculations []ds.Calculation
 	sub := r.db.Where("status != 'deleted' and status != 'draft'")
@@ -106,7 +102,7 @@ func (r *Repository) ChangeCalculation(id int, calculationJSON apitypes.Calculat
 	if id < 0 {
 		return ds.Calculation{}, errors.New("invalid id, it must be >= 0")
 	}
-	if calculationJSON.OutputKoef <= 0 || calculationJSON.OutputKoef > 1 {
+	if *calculationJSON.OutputKoef <= 0 || *calculationJSON.OutputKoef > 1 {
 		return ds.Calculation{}, errors.New("invalid output koeficient")
 	}
 	err := r.db.Where("id = ? and status != 'deleted'", id).First(&calculation).Error

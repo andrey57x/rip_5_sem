@@ -2,6 +2,9 @@ package apitypes
 
 import "Backend/internal/app/ds"
 
+// ReactionCalculationJSON model
+// @Description Model for reaction calculation
+// @Tags reactions calculations
 type ReactionCalculationJSON struct {
 	ID            int     `json:"id"`
 	ReactionID    int     `json:"reaction_id"`

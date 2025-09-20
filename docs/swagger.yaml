@@ -1,0 +1,806 @@
+basePath: /
+definitions:
+  apitypes.CalculationJSON:
+    description: Model for calculation
+    properties:
+      creator_login:
+        type: string
+      date_create:
+        type: string
+      date_finish:
+        type: string
+      date_form:
+        type: string
+      id:
+        type: integer
+      moderator_login:
+        type: string
+      output_koef:
+        type: number
+      status:
+        type: string
+    type: object
+  apitypes.ReactionCalculationJSON:
+    description: Model for reaction calculation
+    properties:
+      calculation_id:
+        type: integer
+      id:
+        type: integer
+      input_mass:
+        type: number
+      output_mass:
+        type: number
+      reaction_id:
+        type: integer
+    type: object
+  apitypes.ReactionJSON:
+    description: Model for reaction
+    properties:
+      conversation_factor:
+        type: number
+      description:
+        type: string
+      id:
+        type: integer
+      img_link:
+        type: string
+      product:
+        type: string
+      reagent:
+        type: string
+      title:
+        type: string
+    type: object
+  apitypes.StatusJSON:
+    properties:
+      status:
+        type: string
+    type: object
+  apitypes.UserJSON:
+    description: Model for user
+    properties:
+      id:
+        type: integer
+      is_moderator:
+        type: boolean
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API для работы с реакциями
+  title: Reactions API
+  version: "1.0"
+paths:
+  /calculations:
+    get:
+      consumes:
+      - application/json
+      description: Получить расчеты
+      parameters:
+      - description: From date
+        in: query
+        name: from-date
+        type: string
+      - description: To date
+        in: query
+        name: to-date
+        type: string
+      - description: Status
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/apitypes.CalculationJSON'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get calculations
+      tags:
+      - calculations
+  /calculations/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить расчет
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete calculation
+      tags:
+      - calculations
+    get:
+      consumes:
+      - application/json
+      description: Получить расчет по id
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get calculation
+      tags:
+      - calculations
+    put:
+      consumes:
+      - application/json
+      description: Изменить расчет
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Change calculation
+        in: body
+        name: calculation
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.CalculationJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Change calculation
+      tags:
+      - calculations
+  /calculations/{id}/form:
+    put:
+      consumes:
+      - application/json
+      description: Сформировать расчет
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Form calculation
+      tags:
+      - calculations
+  /calculations/{id}/moderate:
+    put:
+      consumes:
+      - application/json
+      description: Модерировать расчет
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Moderate calculation
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.StatusJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Moderate calculation
+      tags:
+      - calculations
+  /calculations/calculation-cart:
+    get:
+      consumes:
+      - application/json
+      description: Получить черновик расчета
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get calculation cart
+      tags:
+      - calculations
+  /reaction-calculations/{calculation_id}/{reaction_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить реакцию из расчета
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: calculation_id
+        required: true
+        type: integer
+      - description: Reaction ID
+        in: path
+        name: reaction_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete reaction from calculation
+      tags:
+      - reactions calculations
+    put:
+      consumes:
+      - application/json
+      description: Изменить поле для реакции в расчете
+      parameters:
+      - description: Calculation ID
+        in: path
+        name: calculation_id
+        required: true
+        type: integer
+      - description: Reaction ID
+        in: path
+        name: reaction_id
+        required: true
+        type: integer
+      - description: Change reaction calculation
+        in: body
+        name: reaction_calculation
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.ReactionCalculationJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.ReactionCalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Change reaction calculation
+      tags:
+      - reactions calculations
+  /reactions:
+    get:
+      consumes:
+      - application/json
+      description: Получить список реакций, можно фильтровать по title
+      parameters:
+      - description: Search by title
+        in: query
+        name: reaction_title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/apitypes.ReactionJSON'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List reactions
+      tags:
+      - reactions
+    post:
+      consumes:
+      - application/json
+      description: Создать реакцию
+      parameters:
+      - description: Create reaction
+        in: body
+        name: reaction
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.ReactionJSON'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/apitypes.ReactionJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create reaction
+      tags:
+      - reactions
+  /reactions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удалить реакцию
+      parameters:
+      - description: Reaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete reaction
+      tags:
+      - reactions
+    get:
+      consumes:
+      - application/json
+      description: Получить реакцию по id
+      parameters:
+      - description: Reaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.ReactionJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get reaction
+      tags:
+      - reactions
+    put:
+      consumes:
+      - application/json
+      description: Изменить реакцию
+      parameters:
+      - description: Reaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Change reaction
+        in: body
+        name: reaction
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.ReactionJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.ReactionJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Change reaction
+      tags:
+      - reactions
+  /reactions/{id}/add-to-calculation:
+    post:
+      consumes:
+      - application/json
+      description: Добавить реакцию в калькуляцию
+      parameters:
+      - description: Reaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/apitypes.CalculationJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add reaction to calculation
+      tags:
+      - calculations
+  /reactions/{id}/image:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загрузить изображение
+      parameters:
+      - description: Reaction ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Image
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Upload image
+      tags:
+      - reactions
+  /users/profile:
+    get:
+      consumes:
+      - application/json
+      description: Получить личный кабинет
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get profile
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Изменить личный кабинет
+      parameters:
+      - description: Change profile
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.UserJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Change profile
+      tags:
+      - users
+  /users/sign-in:
+    post:
+      consumes:
+      - application/json
+      description: Войти
+      parameters:
+      - description: Sign in
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.UserJSON'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/apitypes.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sign in
+      tags:
+      - users
+  /users/sign-out:
+    post:
+      consumes:
+      - application/json
+      description: Выйти
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sign out
+      tags:
+      - users
+  /users/sign-up:
+    post:
+      consumes:
+      - application/json
+      description: Зарегистрироваться
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/apitypes.UserJSON'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/apitypes.UserJSON'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create user
+      tags:
+      - users
+swagger: "2.0"
