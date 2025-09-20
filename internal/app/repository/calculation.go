@@ -132,8 +132,8 @@ func (r *Repository) GetSingleCalculation(id int) (ds.Calculation, error) {
 	err = r.db.Where("id = ?", id).First(&calculation).Error
 	if err != nil {
 		return ds.Calculation{}, err
-	} else if user.ID != calculation.CreatorID && !user.IsModerator {
-		return ds.Calculation{}, ErrorNotAllowed
+	// } else if user.ID != calculation.CreatorID && !user.IsModerator {
+	// 	return ds.Calculation{}, ErrorNotAllowed
 	} else if calculation.Status == "deleted" && !user.IsModerator {
 		return ds.Calculation{}, errors.New("calculation is deleted")
 	}
