@@ -109,7 +109,7 @@ func (r *Repository) GetReactionsByTitle(title string) ([]Reaction, error) {
 
 func (r *Repository) GetCalculationReactions(id int) ([]Reaction, error) {
 	manyToMany := map[int][]int{
-		1: {1, 2},
+		1: {1, 4},
 	}
 
 	reactionIds, ok := manyToMany[id]
