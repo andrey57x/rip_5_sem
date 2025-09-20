@@ -21,9 +21,28 @@ func NewHandler(r *repository.Repository) *Handler {
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	router.GET("/reactions", h.GetReactions)
 	router.GET("/reactions/:id", h.GetReaction)
-	router.GET("/mass-calculation/:id", h.GetCalculation)
+	router.POST("/reactions", h.CreateReaction)
+	router.PUT("/reactions/:id", h.ChangeReaction)
+	router.DELETE("/reactions/:id", h.DeleteReaction)
 	router.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
-	router.POST("/calculation/:id/delete", h.DeleteCalculation)
+	router.POST("/reactions/:id/image", h.UploadImage)
+
+	router.GET("/calculations/calculation-cart", h.GetCalculationCart)
+	router.GET("/calculations", h.GetCalculations)
+	router.GET("/calculations/:id", h.GetCalculation)
+	router.PUT("/calculations/:id", h.ChangeCalculation)
+	router.PUT("/calculations/:id/form", h.FormCalculation)
+	router.PUT("/calculations/:id/moderate", h.ModerateCalculation)
+	router.DELETE("/calculations/:id", h.FormCalculation)
+
+	router.DELETE("/reaction-calculations/:calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
+	router.PUT("/reaction-calculations/:calculation_id/:reaction_id", h.ChangeReactionCalculation)
+
+	router.POST("/users/sign-up", h.CreateUser)
+	router.GET("/users/profile", h.GetProfile)
+	router.PUT("/users/profile", h.ChangeProfile)
+	router.POST("/users/sign-in", h.SignIn)
+	router.POST("/users/sign-out", h.SignOut)
 }
 
 // RegisterStatic То же самое, что и с маршрутами, регистрируем статику

@@ -1,12 +1,17 @@
 package repository
 
 import (
+	minioInclude "Backend/internal/app/minio"
+
+	"github.com/minio/minio-go/v7"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Repository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	mc     *minio.Client
+	userId int
 }
 
 func NewRepository(dsn string) (*Repository, error) {
@@ -15,13 +20,27 @@ func NewRepository(dsn string) (*Repository, error) {
 		return nil, err
 	}
 
+	mc, err := minioInclude.InitMinio()
+	if err != nil {
+		return nil, err
+	}
+
 	// Возвращаем объект Repository с подключенной базой данных
 	return &Repository{
-		db: db,
+		db:     db,
+		mc:     mc,
+		userId: 0,
 	}, nil
 }
 
+func (r *Repository) GetUserID() int {
+	return r.userId
+}
 
-func (r *Repository) GetUser() (int) {
-	return 1
+func (r *Repository) SetUserID(id int) {
+	r.userId = id
+}
+
+func (r *Repository) SignOut() {
+	r.userId = 0
 }

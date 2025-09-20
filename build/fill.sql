@@ -15,6 +15,11 @@ VALUES
   ('user2', 'user2', false);
 
 INSERT INTO
+  users (id, login, password, is_moderator)
+VALUES
+  (0, 'default', 'default', false);
+
+INSERT INTO
   calculations (status, date_create, creator_id)
 VALUES
   ('draft', '2025-09-07 10:15:30', 1),

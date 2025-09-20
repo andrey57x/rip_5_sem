@@ -1,67 +1,38 @@
 package repository
 
 import (
+	apitypes "Backend/internal/app/api_types"
 	"Backend/internal/app/ds"
+	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/sirupsen/logrus"
 )
 
-var noDraftError = errors.New("no draft for this user")
+var ErrorNotAllowed = errors.New("you are not allowed")
+var ErrorNoDraft = errors.New("no draft for this user")
 
-func (r *Repository) GetCalculationReactions(id int) ([]ds.ReactionInfo, ds.Calculation, error) {
-
-	creatorID := r.GetUser()
-	// пока что мы захардкодили id создателя заявки, в последующем вы сделаете авторизацию и будете получать его из JWT
-
-	var calculation ds.Calculation
-	err := r.db.Where("id = ?", id).First(&calculation).Error
+func (r *Repository) GetCalculationReactions(id int) ([]ds.Reaction, ds.Calculation, error) {
+	calculation, err := r.GetSingleCalculation(id)
 	if err != nil {
-		return []ds.ReactionInfo{}, ds.Calculation{}, err
-	} else if creatorID != calculation.CreatorID {
-		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you are not allowed")
-	} else if calculation.Status == "deleted" {
-		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you can`t watch deleted calculations")
+		return []ds.Reaction{}, ds.Calculation{}, err
 	}
 
 	var reactions []ds.Reaction
-	var reactionCalculations []ds.ReactionCalculation
-	sub := r.db.Table("reaction_calculations").Where("calculation_id = ?", calculation.ID).Find(&reactionCalculations)
+	sub := r.db.Table("reaction_calculations").Where("calculation_id = ?", calculation.ID)
 	err = r.db.Where("id IN (?)", sub.Select("reaction_id")).Find(&reactions).Error
 
-	var reactionInfos []ds.ReactionInfo
-	for _, reaction := range reactions {
-		for _, reactionCalculation := range reactionCalculations {
-			if reaction.ID == reactionCalculation.ReactionID {
-				reactionInfos = append(reactionInfos, ds.ReactionInfo{
-					ID:                 reaction.ID,
-					Title:              reaction.Title,
-					Reagent:            reaction.Reagent,
-					Product:            reaction.Product,
-					ConversationFactor: reaction.ConversationFactor,
-					ImgLink:            reaction.ImgLink,
-
-					OutputMass: reactionCalculation.OutputMass,
-					InputMass:  reactionCalculation.InputMass,
-				})
-				break
-			}
-		}
-	}
-
 	if err != nil {
-		return []ds.ReactionInfo{}, ds.Calculation{}, err
+		return []ds.Reaction{}, ds.Calculation{}, err
 	}
 
-	return reactionInfos, calculation, nil
+	return reactions, calculation, nil
 }
 
 // GetCartCount для получения количества услуг в заявке
-func (r *Repository) GetCartCount() int {
+func (r *Repository) GetCartCount(creatorID int) int {
 	var count int64
-	creatorID := r.GetUser()
-	// пока что мы захардкодили id создателя заявки, в последующем вы сделаете авторизацию и будете получать его из JWT
 
 	calculation, err := r.CheckCurrentCalculationDraft(creatorID)
 	if err != nil {
@@ -83,14 +54,14 @@ func (r *Repository) CheckCurrentCalculationDraft(creatorID int) (ds.Calculation
 	if res.Error != nil {
 		return ds.Calculation{}, res.Error
 	} else if res.RowsAffected == 0 {
-		return ds.Calculation{}, noDraftError
+		return ds.Calculation{}, ErrorNoDraft
 	}
 	return calculation, nil
 }
 
-func (r *Repository) GetCalculationDraft(creatorID int) (ds.Calculation, error) {
+func (r *Repository) GetCalculationDraft(creatorID int) (ds.Calculation, bool, error) {
 	calculation, err := r.CheckCurrentCalculationDraft(creatorID)
-	if err == noDraftError {
+	if err == ErrorNoDraft {
 		calculation = ds.Calculation{
 			Status:     "draft",
 			CreatorID:  creatorID,
@@ -98,15 +69,159 @@ func (r *Repository) GetCalculationDraft(creatorID int) (ds.Calculation, error) 
 		}
 		result := r.db.Create(&calculation)
 		if result.Error != nil {
-			return ds.Calculation{}, result.Error
+			return ds.Calculation{}, false, result.Error
 		}
-		return calculation, nil
+		return calculation, true, nil
 	} else if err != nil {
+		return ds.Calculation{}, false, err
+	}
+	return calculation, false, nil
+}
+
+func (r *Repository) DeleteCalculation(id int) error {
+	return r.db.Exec("UPDATE calculations SET status = 'deleted' WHERE id = ?", id).Error
+}
+
+func (r *Repository) GetCalculations(from, to time.Time, status string) ([]ds.Calculation, error) {
+	var calculations []ds.Calculation
+	sub := r.db.Where("status != 'deleted' and status != 'draft'")
+	if !from.IsZero() {
+		sub = sub.Where("date_create > ?", from)
+	}
+	if !to.IsZero() {
+		sub = sub.Where("date_create < ?", to.Add(time.Hour*24))
+	}
+	if status != "" {
+		sub = sub.Where("status = ?", status)
+	}
+	err := sub.Find(&calculations).Error
+	if err != nil {
+		return nil, err
+	}
+	return calculations, nil
+}
+
+func (r *Repository) ChangeCalculation(id int, calculationJSON apitypes.CalculationJSON) (ds.Calculation, error) {
+	calculation := ds.Calculation{}
+	if id < 0 {
+		return ds.Calculation{}, errors.New("invalid id, it must be >= 0")
+	}
+	if calculationJSON.OutputKoef <= 0 || calculationJSON.OutputKoef > 1 {
+		return ds.Calculation{}, errors.New("invalid output koeficient")
+	}
+	err := r.db.Where("id = ? and status != 'deleted'", id).First(&calculation).Error
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+	err = r.db.Model(&calculation).Updates(apitypes.CalculationFromJSON(calculationJSON)).Error
+	if err != nil {
 		return ds.Calculation{}, err
 	}
 	return calculation, nil
 }
 
-func (r *Repository) DeleteCalculation(id int) error {
-	return r.db.Exec("UPDATE calculations SET status = 'deleted' WHERE id = ?", id).Error
+func (r *Repository) GetSingleCalculation(id int) (ds.Calculation, error) {
+	if id < 0 {
+		return ds.Calculation{}, errors.New("invalid id, it must be >= 0")
+	}
+	user, err := r.GetUserByID(r.GetUserID())
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+	var calculation ds.Calculation
+	err = r.db.Where("id = ?", id).First(&calculation).Error
+	if err != nil {
+		return ds.Calculation{}, err
+	} else if user.ID != calculation.CreatorID && !user.IsModerator {
+		return ds.Calculation{}, ErrorNotAllowed
+	} else if calculation.Status == "deleted" && !user.IsModerator {
+		return ds.Calculation{}, errors.New("calculation is deleted")
+	}
+	return calculation, nil
+}
+
+func (r *Repository) FormCalculation(id int, status string) (ds.Calculation, error) {
+	calculation, err := r.GetSingleCalculation(id)
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+
+	if calculation.Status != "draft" {
+		return ds.Calculation{}, errors.New("this calculation can not be " + status)
+	}
+
+	err = r.db.Model(&calculation).Updates(ds.Calculation{
+		Status: status,
+		DateForm: sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		},
+	}).Error
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+
+	return calculation, nil
+}
+
+func (r *Repository) ModerateCalculation(id int, status string) (ds.Calculation, error) {
+	if status != "completed" && status != "rejected" {
+		return ds.Calculation{}, errors.New("wrong status")
+	}
+
+	user, err := r.GetUserByID(r.GetUserID())
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+
+	if !user.IsModerator {
+		return ds.Calculation{}, errors.New("you are not a moderator")
+	}
+
+	calculation, err := r.GetSingleCalculation(id)
+	if err != nil {
+		return ds.Calculation{}, err
+	} else if calculation.Status != "formed" {
+		return ds.Calculation{}, errors.New("this calculation can not be " + status)
+	}
+
+	err = r.db.Model(&calculation).Updates(ds.Calculation{
+		Status: status,
+		DateFinish: sql.NullTime{
+			Time:  time.Now(),
+			Valid: true,
+		},
+		ModeratorID: sql.NullInt64{
+			Int64: int64(user.ID),
+			Valid: true,
+		},
+	}).Error
+	if err != nil {
+		return ds.Calculation{}, err
+	}
+
+	if status == "completed" {
+		reactionCalculations, err := r.GetReactionCalculations(calculation.ID)
+		if err != nil {
+			return ds.Calculation{}, err
+		}
+		for _, reactionCalculation := range reactionCalculations {
+			reaction, err := r.GetReaction(reactionCalculation.ReactionID)
+			if err != nil {
+				return ds.Calculation{}, err
+			}
+			mass, err := CalculateMass(reactionCalculation.OutputMass, reaction.ConversationFactor, calculation.OutputKoef)
+			if err != nil {
+				return ds.Calculation{}, err
+			}
+			err = r.db.Model(&reactionCalculation).Updates(ds.ReactionCalculation{
+				InputMass: mass,
+			}).Error
+			if err != nil {
+				return ds.Calculation{}, err
+			}
+		}
+	}
+
+	return calculation, nil
 }

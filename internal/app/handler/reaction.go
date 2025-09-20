@@ -1,13 +1,14 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
+	apitypes "Backend/internal/app/api_types"
 	"Backend/internal/app/ds"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
 )
 
 func (h *Handler) GetReactions(ctx *gin.Context) {
@@ -18,28 +19,21 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 	if searchReaction == "" {                     // если поле поиска пусто, то просто получаем из репозитория все записи
 		reactions, err = h.Repository.GetReactions()
 		if err != nil {
-			logrus.Error(err)
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+			return
 		}
 	} else {
 		reactions, err = h.Repository.GetReactionsByTitle(searchReaction) // в ином случае ищем заказ по заголовку
 		if err != nil {
-			logrus.Error(err)
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+			return
 		}
 	}
-
-	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
+	resp := make([]apitypes.ReactionJSON, 0, len(reactions))
+	for _, r := range reactions {
+		resp = append(resp, apitypes.ReactionToJSON(r))
 	}
-
-	calculation, _ := h.Repository.CheckCurrentCalculationDraft(h.Repository.GetUser())
-
-	ctx.HTML(http.StatusOK, "reactions.html", gin.H{
-		"reactions":                reactions,
-		"reaction_title":           searchReaction,
-		"reactions_in_calculation": h.Repository.GetCartCount(),
-		"calculation_id":           calculation.ID,
-	})
+	ctx.JSON(http.StatusOK, resp)
 }
 
 func (h *Handler) GetReaction(ctx *gin.Context) {
@@ -47,7 +41,7 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	// через двоеточие мы указываем параметры, которые потом сможем считать через функцию выше
 	id, err := strconv.Atoi(idStr) // так как функция выше возвращает нам строку, нужно ее преобразовать в int
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -57,14 +51,69 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 		return
 	}
 
-	ctx.HTML(http.StatusOK, "single_reaction.html", gin.H{
-		"reaction": reaction,
+	ctx.JSON(http.StatusOK, apitypes.ReactionToJSON(reaction))
+}
+
+func (h *Handler) CreateReaction(ctx *gin.Context) {
+	var reactionJSON apitypes.ReactionJSON
+	if err := ctx.BindJSON(&reactionJSON); err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+	reaction, err := h.Repository.CreateReaction(reactionJSON)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Header("Location", fmt.Sprintf("/reactions/%v", reaction.ID))
+	ctx.JSON(http.StatusCreated, apitypes.ReactionToJSON(reaction))
+}
+
+func (h *Handler) ChangeReaction(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	var reactionJSON apitypes.ReactionJSON
+	if err := ctx.BindJSON(&reactionJSON); err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	reaction, err := h.Repository.ChangeReaction(id, reactionJSON)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apitypes.ReactionToJSON(reaction))
+}
+
+func (h *Handler) DeleteReaction(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	err = h.Repository.DeleteReaction(id)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "deleted",
 	})
 }
 
 func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
-	calculation, err := h.Repository.GetCalculationDraft(h.Repository.GetUser())
-	calculationID := calculation.ID
+	calculation, created, err := h.Repository.GetCalculationDraft(h.Repository.GetUserID())
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
@@ -76,11 +125,48 @@ func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 		return
 	}
 
-	err = h.Repository.AddReactionToCalculation(calculationID, reactionID)
+	err = h.Repository.AddReactionToCalculation(calculation.ID, reactionID)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	ctx.Redirect(http.StatusFound, "/reactions")
+	status := http.StatusOK
+	if created {
+		ctx.Header("Location", fmt.Sprintf("/calculations/%v", calculation.ID))
+		status = http.StatusCreated
+	}
+
+	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(status, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+}
+
+func (h *Handler) UploadImage(ctx *gin.Context) {
+	reactionID, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	file, err := ctx.FormFile("image")
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	reaction, err := h.Repository.UploadImage(ctx, reactionID, file)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"status": "uploaded",
+		"reaction": apitypes.ReactionToJSON(reaction),
+	})
 }
