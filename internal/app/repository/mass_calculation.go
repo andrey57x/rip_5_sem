@@ -8,21 +8,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var noDraftError = errors.New("no draft for this user")
+var ErrorNoDraft = errors.New("no draft for this user")
 
-func (r *Repository) GetCalculationReactions(id int) ([]ds.ReactionInfo, ds.Calculation, error) {
-
-	creatorID := r.GetUser()
-	// пока что мы захардкодили id создателя заявки, в последующем вы сделаете авторизацию и будете получать его из JWT
-
-	var calculation ds.Calculation
+func (r *Repository) GetMassCalculationReactions(id int) ([]ds.ReactionInfo, ds.MassCalculation, error) {
+	var calculation ds.MassCalculation
 	err := r.db.Where("id = ?", id).First(&calculation).Error
 	if err != nil {
-		return []ds.ReactionInfo{}, ds.Calculation{}, err
-	} else if creatorID != calculation.CreatorID {
-		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you are not allowed")
+		return []ds.ReactionInfo{}, ds.MassCalculation{}, err
 	} else if calculation.Status == "deleted" {
-		return []ds.ReactionInfo{}, ds.Calculation{}, errors.New("you can`t watch deleted calculations")
+		return []ds.ReactionInfo{}, ds.MassCalculation{}, errors.New("you can`t watch deleted calculations")
 	}
 
 	var reactions []ds.Reaction
@@ -51,7 +45,7 @@ func (r *Repository) GetCalculationReactions(id int) ([]ds.ReactionInfo, ds.Calc
 	}
 
 	if err != nil {
-		return []ds.ReactionInfo{}, ds.Calculation{}, err
+		return []ds.ReactionInfo{}, ds.MassCalculation{}, err
 	}
 
 	return reactionInfos, calculation, nil
@@ -63,7 +57,7 @@ func (r *Repository) GetCartCount() int {
 	creatorID := r.GetUser()
 	// пока что мы захардкодили id создателя заявки, в последующем вы сделаете авторизацию и будете получать его из JWT
 
-	calculation, err := r.CheckCurrentCalculationDraft(creatorID)
+	calculation, err := r.CheckCurrentMassCalculationDraft(creatorID)
 	if err != nil {
 		return 0
 	}
@@ -76,37 +70,37 @@ func (r *Repository) GetCartCount() int {
 	return int(count)
 }
 
-func (r *Repository) CheckCurrentCalculationDraft(creatorID int) (ds.Calculation, error) {
-	var calculation ds.Calculation
+func (r *Repository) CheckCurrentMassCalculationDraft(creatorID int) (ds.MassCalculation, error) {
+	var calculation ds.MassCalculation
 
 	res := r.db.Where("creator_id = ? AND status = ?", creatorID, "draft").Limit(1).Find(&calculation)
 	if res.Error != nil {
-		return ds.Calculation{}, res.Error
+		return ds.MassCalculation{}, res.Error
 	} else if res.RowsAffected == 0 {
-		return ds.Calculation{}, noDraftError
+		return ds.MassCalculation{}, ErrorNoDraft
 	}
 	return calculation, nil
 }
 
-func (r *Repository) GetCalculationDraft(creatorID int) (ds.Calculation, error) {
-	calculation, err := r.CheckCurrentCalculationDraft(creatorID)
-	if err == noDraftError {
-		calculation = ds.Calculation{
+func (r *Repository) GetMassCalculationDraft(creatorID int) (ds.MassCalculation, error) {
+	calculation, err := r.CheckCurrentMassCalculationDraft(creatorID)
+	if err == ErrorNoDraft {
+		calculation = ds.MassCalculation{
 			Status:     "draft",
 			CreatorID:  creatorID,
 			DateCreate: time.Now(),
 		}
 		result := r.db.Create(&calculation)
 		if result.Error != nil {
-			return ds.Calculation{}, result.Error
+			return ds.MassCalculation{}, result.Error
 		}
 		return calculation, nil
 	} else if err != nil {
-		return ds.Calculation{}, err
+		return ds.MassCalculation{}, err
 	}
 	return calculation, nil
 }
 
-func (r *Repository) DeleteCalculation(id int) error {
+func (r *Repository) DeleteMassCalculation(id int) error {
 	return r.db.Exec("UPDATE calculations SET status = 'deleted' WHERE id = ?", id).Error
 }

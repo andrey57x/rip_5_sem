@@ -45,7 +45,7 @@ func (r *Repository) AddReactionToCalculation(calculationID int, reactionID int)
 		return err
 	}
 
-	var calculation ds.Calculation
+	var calculation ds.MassCalculation
 	if err := r.db.First(&calculation, calculationID).Error; err != nil {
 		return err
 	}

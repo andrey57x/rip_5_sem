@@ -32,7 +32,7 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 		return
 	}
 
-	calculation, _ := h.Repository.CheckCurrentCalculationDraft(h.Repository.GetUser())
+	calculation, _ := h.Repository.CheckCurrentMassCalculationDraft(h.Repository.GetUser())
 
 	ctx.HTML(http.StatusOK, "reactions.html", gin.H{
 		"reactions":                reactions,
@@ -47,13 +47,15 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	// через двоеточие мы указываем параметры, которые потом сможем считать через функцию выше
 	id, err := strconv.Atoi(idStr) // так как функция выше возвращает нам строку, нужно ее преобразовать в int
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		// h.errorHandler(ctx, http.StatusBadRequest, err)
+		ctx.Redirect(http.StatusFound, "/reactions")
 		return
 	}
 
 	reaction, err := h.Repository.GetReaction(id)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		// h.errorHandler(ctx, http.StatusInternalServerError, err)
+		ctx.Redirect(http.StatusFound, "/reactions")
 		return
 	}
 
@@ -63,22 +65,25 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 }
 
 func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
-	calculation, err := h.Repository.GetCalculationDraft(h.Repository.GetUser())
+	calculation, err := h.Repository.GetMassCalculationDraft(h.Repository.GetUser())
 	calculationID := calculation.ID
 	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
+		// h.errorHandler(ctx, http.StatusBadRequest, err)
+		ctx.Redirect(http.StatusFound, "/reactions")
 		return
 	}
 
 	reactionID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
+		// h.errorHandler(ctx, http.StatusBadRequest, err)
+		ctx.Redirect(http.StatusFound, "/reactions")
 		return
 	}
 
 	err = h.Repository.AddReactionToCalculation(calculationID, reactionID)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		// h.errorHandler(ctx, http.StatusInternalServerError, err)
+		ctx.Redirect(http.StatusFound, "/reactions")
 		return
 	}
 

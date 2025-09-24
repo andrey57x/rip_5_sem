@@ -21,9 +21,9 @@ func NewHandler(r *repository.Repository) *Handler {
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	router.GET("/reactions", h.GetReactions)
 	router.GET("/reactions/:id", h.GetReaction)
-	router.GET("/mass-calculation/:id", h.GetCalculation)
+	router.GET("/mass-calculation/:id", h.GetMassCalculation)
 	router.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
-	router.POST("/calculation/:id/delete", h.DeleteCalculation)
+	router.POST("/calculation/:id/delete", h.DeleteMassCalculation)
 }
 
 // RegisterStatic То же самое, что и с маршрутами, регистрируем статику

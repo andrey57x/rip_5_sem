@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Calculation struct {
+type MassCalculation struct {
 	ID          int           `gorm:"primaryKey;autoIncrement"`
 	OutputKoef  float32       `gorm:"float;default:1"`
 	Status      string        `gorm:"type:varchar(16);not null"`
