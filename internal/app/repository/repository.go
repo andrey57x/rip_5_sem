@@ -22,6 +22,17 @@ type Reaction struct {
 	Description        string
 }
 
+type Calculation struct {
+	CalculationDate string
+	ReactionParameters []ReactionCalculation
+}
+
+type ReactionCalculation struct {
+	ReactionId int
+	OutputMass float32
+	InputMass float32
+}
+
 func (r *Repository) GetReactions() ([]Reaction, error) {
 	reactions := []Reaction{
 		{
@@ -108,13 +119,38 @@ func (r *Repository) GetReactionsByTitle(title string) ([]Reaction, error) {
 }
 
 func (r *Repository) GetCalculationReactions(id int) ([]Reaction, error) {
-	manyToMany := map[int][]int{
-		1: {1, 4},
+	calculations := map[int]Calculation{
+		1: {
+			CalculationDate: "2022-01-01",
+			ReactionParameters: []ReactionCalculation{
+				{
+					ReactionId: 1,
+					OutputMass: 100,
+					InputMass:  110,
+				},
+				{
+					ReactionId: 3,
+					OutputMass: 300,
+					InputMass:  200,
+				},
+				{
+					ReactionId: 4,
+					OutputMass: 500,
+					InputMass:  600,
+				},
+			},
+		},
 	}
 
-	reactionIds, ok := manyToMany[id]
+	calculation, ok := calculations[id]
 	if !ok {
 		return []Reaction{}, nil
+	}
+
+	reactionCalculations := calculation.ReactionParameters
+	var reactionIds []int
+	for _, reactionCalculation := range reactionCalculations {
+		reactionIds = append(reactionIds, reactionCalculation.ReactionId)
 	}
 
 	reactions, err := r.GetReactions()
