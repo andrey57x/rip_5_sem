@@ -10,8 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var ErrorNotAllowed = errors.New("you are not allowed")
-var ErrorNoDraft = errors.New("no draft for this user")
+var (
+	ErrorNotAllowed = errors.New("you are not allowed")
+	ErrorNoDraft    = errors.New("no draft for this user")
+	ErrorNotFound   = errors.New("not found")
+)
 
 func (r *Repository) GetCalculationReactions(id int) ([]ds.Reaction, ds.Calculation, error) {
 	calculation, err := r.GetSingleCalculation(id)
@@ -24,7 +27,7 @@ func (r *Repository) GetCalculationReactions(id int) ([]ds.Reaction, ds.Calculat
 	err = r.db.Where("id IN (?)", sub.Select("reaction_id")).Find(&reactions).Error
 
 	if err != nil {
-		return []ds.Reaction{}, ds.Calculation{}, err
+		return []ds.Reaction{}, ds.Calculation{}, ErrorNotFound
 	}
 
 	return reactions, calculation, nil
@@ -107,7 +110,7 @@ func (r *Repository) ChangeCalculation(id int, calculationJSON apitypes.Calculat
 	}
 	err := r.db.Where("id = ? and status != 'deleted'", id).First(&calculation).Error
 	if err != nil {
-		return ds.Calculation{}, err
+		return ds.Calculation{}, ErrorNotFound
 	}
 	err = r.db.Model(&calculation).Updates(apitypes.CalculationFromJSON(calculationJSON)).Error
 	if err != nil {
@@ -120,19 +123,12 @@ func (r *Repository) GetSingleCalculation(id int) (ds.Calculation, error) {
 	if id < 0 {
 		return ds.Calculation{}, errors.New("invalid id, it must be >= 0")
 	}
-	user, err := r.GetUserByID(r.GetUserID())
-	if err != nil {
-		return ds.Calculation{}, err
-	}
 	var calculation ds.Calculation
-	err = r.db.Where("id = ?", id).First(&calculation).Error
+	err := r.db.Where("id = ?", id).First(&calculation).Error
 	if err != nil {
-		return ds.Calculation{}, err
-	// } else if user.ID != calculation.CreatorID && !user.IsModerator {
-	// 	return ds.Calculation{}, ErrorNotAllowed
-	} else if calculation.Status == "deleted" && !user.IsModerator {
-		return ds.Calculation{}, errors.New("calculation is deleted")
+		return ds.Calculation{}, ErrorNotFound
 	}
+
 	return calculation, nil
 }
 
@@ -165,14 +161,7 @@ func (r *Repository) ModerateCalculation(id int, status string) (ds.Calculation,
 		return ds.Calculation{}, errors.New("wrong status")
 	}
 
-	user, err := r.GetUserByID(r.GetUserID())
-	if err != nil {
-		return ds.Calculation{}, err
-	}
-
-	if !user.IsModerator {
-		return ds.Calculation{}, errors.New("you are not a moderator")
-	}
+	userId := r.GetUserID()
 
 	calculation, err := r.GetSingleCalculation(id)
 	if err != nil {
@@ -188,7 +177,7 @@ func (r *Repository) ModerateCalculation(id int, status string) (ds.Calculation,
 			Valid: true,
 		},
 		ModeratorID: sql.NullInt64{
-			Int64: int64(user.ID),
+			Int64: int64(userId),
 			Valid: true,
 		},
 	}).Error

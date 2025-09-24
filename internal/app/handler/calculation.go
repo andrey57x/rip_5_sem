@@ -2,6 +2,7 @@ package handler
 
 import (
 	apitypes "Backend/internal/app/api_types"
+	"Backend/internal/app/repository"
 	"net/http"
 	"strconv"
 	"time"
@@ -9,17 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetCalculation godoc
-// @Summary Get calculation
-// @Description Получить расчет по id
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Calculation ID"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/{id} [get]
 func (h *Handler) GetCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -29,6 +19,10 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 	}
 
 	reactions, calculation, err := h.Repository.GetCalculationReactions(id)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -40,6 +34,10 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -51,16 +49,6 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 	})
 }
 
-// GetCalculationCart godoc
-// @Summary Get calculation cart
-// @Description Получить черновик расчета
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/calculation-cart [get]
 func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	reactionsCount := h.Repository.GetCartCount(h.Repository.GetUserID())
 
@@ -73,6 +61,10 @@ func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	}
 
 	calculation, err := h.Repository.CheckCurrentCalculationDraft(h.Repository.GetUserID())
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -85,19 +77,6 @@ func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	})
 }
 
-// GetCalculations godoc
-// @Summary Get calculations
-// @Description Получить расчеты
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param from-date query string false "From date"
-// @Param to-date query string false "To date"
-// @Param status query string false "Status"
-// @Success 200 {object} []apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations [get]
 func (h *Handler) GetCalculations(ctx *gin.Context) {
 	fromDate := ctx.Query("from-date")
 	var from = time.Time{}
@@ -124,6 +103,10 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 	status := ctx.Query("status")
 
 	calculations, err := h.Repository.GetCalculations(from, to, status)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -131,6 +114,10 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 	resp := make([]apitypes.CalculationJSON, 0, len(calculations))
 	for _, c := range calculations {
 		creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(c)
+		if err == repository.ErrorNotFound {
+			h.errorHandler(ctx, http.StatusNotFound, err)
+			return
+		}
 		if err != nil {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 			return
@@ -140,19 +127,6 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-
-// ChangeCalculation godoc
-// @Summary Change calculation
-// @Description Изменить расчет
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Calculation ID"
-// @Param calculation body apitypes.CalculationJSON true "Change calculation"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/{id} [put]
 func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -168,12 +142,20 @@ func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 	}
 
 	calculation, err := h.Repository.ChangeCalculation(id, calculationJSON)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -182,17 +164,6 @@ func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
-// FormCalculation godoc
-// @Summary Form calculation
-// @Description Сформировать расчет
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Calculation ID"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/{id}/form [put]
 func (h *Handler) FormCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -205,12 +176,20 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 
 	calculation, err := h.Repository.FormCalculation(id, status)
 
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -219,17 +198,6 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
-// DeleteCalculation godoc
-// @Summary Delete calculation
-// @Description Удалить расчет
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Calculation ID"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/{id} [delete]
 func (h *Handler) DeleteCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -242,6 +210,10 @@ func (h *Handler) DeleteCalculation(ctx *gin.Context) {
 
 	_, err = h.Repository.FormCalculation(id, status)
 
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -250,18 +222,6 @@ func (h *Handler) DeleteCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Calculation deleted"})
 }
 
-// ModerateCalculation godoc
-// @Summary Moderate calculation
-// @Description Модерировать расчет
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Calculation ID"
-// @Param status body apitypes.StatusJSON true "Moderate calculation"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /calculations/{id}/moderate [put]
 func (h *Handler) ModerateCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -278,12 +238,20 @@ func (h *Handler) ModerateCalculation(ctx *gin.Context) {
 
 	calculation, err := h.Repository.ModerateCalculation(id, statusJSON.Status)
 
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return

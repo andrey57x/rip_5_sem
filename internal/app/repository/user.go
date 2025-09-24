@@ -16,7 +16,7 @@ func (r *Repository) GetUserByID(id int) (ds.User, error) {
 		return ds.User{}, sub.Error
 	}
 	if sub.RowsAffected == 0 {
-		return ds.User{}, errors.New("user not found")
+		return ds.User{}, ErrorNotFound
 	}
 	err := sub.First(&user).Error
 	if err != nil {
@@ -32,7 +32,7 @@ func (r *Repository) GetUserByLogin(login string) (ds.User, error) {
 		return ds.User{}, sub.Error
 	}
 	if sub.RowsAffected == 0 {
-		return ds.User{}, errors.New("user not found")
+		return ds.User{}, ErrorNotFound
 	}
 	err := sub.First(&user).Error
 	if err != nil {
@@ -63,25 +63,6 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 	if sub.Error != nil {
 		return ds.User{}, sub.Error
 	}
-	return user, nil
-}
-
-func (r *Repository) SignIn(userJSON apitypes.UserJSON) (ds.User, error) {
-	user := apitypes.UserFromJSON(userJSON)
-	if user.Login == "" {
-		return ds.User{}, errors.New("login is empty")
-	}
-	if user.Password == "" {
-		return ds.User{}, errors.New("password is empty")
-	}
-	user, err := r.GetUserByLogin(user.Login)
-	if err != nil {
-		return ds.User{}, err
-	}
-	if user.Password != userJSON.Password {
-		return ds.User{}, errors.New("wrong password")
-	}
-	r.SetUserID(user.ID)
 	return user, nil
 }
 

@@ -33,14 +33,14 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	router.PUT("/calculations/:id", h.ChangeCalculation)
 	router.PUT("/calculations/:id/form", h.FormCalculation)
 	router.PUT("/calculations/:id/moderate", h.ModerateCalculation)
-	router.DELETE("/calculations/:id", h.FormCalculation)
+	router.DELETE("/calculations/:id", h.DeleteCalculation)
 
 	router.DELETE("/reaction-calculations/:calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
 	router.PUT("/reaction-calculations/:calculation_id/:reaction_id", h.ChangeReactionCalculation)
 
 	router.POST("/users/sign-up", h.CreateUser)
-	router.GET("/users/profile", h.GetProfile)
-	router.PUT("/users/profile", h.ChangeProfile)
+	router.GET("/users/:id/profile", h.GetProfile)
+	router.PUT("/users/:id/profile", h.ChangeProfile)
 	router.POST("/users/sign-in", h.SignIn)
 	router.POST("/users/sign-out", h.SignOut)
 }

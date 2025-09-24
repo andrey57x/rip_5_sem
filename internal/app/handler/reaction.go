@@ -7,20 +7,11 @@ import (
 
 	apitypes "Backend/internal/app/api_types"
 	"Backend/internal/app/ds"
+	"Backend/internal/app/repository"
 
 	"github.com/gin-gonic/gin"
 )
 
-// GetReactions godoc
-// @Summary List reactions
-// @Description Получить список реакций, можно фильтровать по title
-// @Tags reactions
-// @Accept json
-// @Produce json
-// @Param reaction_title query string false "Search by title"
-// @Success 200 {array} apitypes.ReactionJSON
-// @Failure 500 {object} map[string]string
-// @Router /reactions [get]
 func (h *Handler) GetReactions(ctx *gin.Context) {
 	var reactions []ds.Reaction
 	var err error
@@ -46,17 +37,6 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-// GetReaction godoc
-// @Summary Get reaction
-// @Description Получить реакцию по id
-// @Tags reactions
-// @Accept json
-// @Produce json
-// @Param id path int true "Reaction ID"
-// @Success 200 {object} apitypes.ReactionJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions/{id} [get]
 func (h *Handler) GetReaction(ctx *gin.Context) {
 	idStr := ctx.Param("id") // получаем id заказа из урла (то есть из /reaction/:id)
 	// через двоеточие мы указываем параметры, которые потом сможем считать через функцию выше
@@ -67,6 +47,10 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	}
 
 	reaction, err := h.Repository.GetReaction(id)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -75,17 +59,6 @@ func (h *Handler) GetReaction(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.ReactionToJSON(reaction))
 }
 
-// CreateReaction godoc
-// @Summary Create reaction
-// @Description Создать реакцию
-// @Tags reactions
-// @Accept json
-// @Produce json
-// @Param reaction body apitypes.ReactionJSON true "Create reaction"
-// @Success 201 {object} apitypes.ReactionJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions [post]
 func (h *Handler) CreateReaction(ctx *gin.Context) {
 	var reactionJSON apitypes.ReactionJSON
 	if err := ctx.BindJSON(&reactionJSON); err != nil {
@@ -102,18 +75,6 @@ func (h *Handler) CreateReaction(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, apitypes.ReactionToJSON(reaction))
 }
 
-// ChangeReaction godoc
-// @Summary Change reaction
-// @Description Изменить реакцию
-// @Tags reactions
-// @Accept json
-// @Produce json
-// @Param id path int true "Reaction ID"
-// @Param reaction body apitypes.ReactionJSON true "Change reaction"
-// @Success 200 {object} apitypes.ReactionJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions/{id} [put]
 func (h *Handler) ChangeReaction(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -129,6 +90,10 @@ func (h *Handler) ChangeReaction(ctx *gin.Context) {
 	}
 
 	reaction, err := h.Repository.ChangeReaction(id, reactionJSON)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -137,17 +102,6 @@ func (h *Handler) ChangeReaction(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.ReactionToJSON(reaction))
 }
 
-// DeleteReaction godoc
-// @Summary Delete reaction
-// @Description Удалить реакцию
-// @Tags reactions
-// @Accept json
-// @Produce json
-// @Param id path int true "Reaction ID"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions/{id} [delete]
 func (h *Handler) DeleteReaction(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -157,6 +111,10 @@ func (h *Handler) DeleteReaction(ctx *gin.Context) {
 	}
 
 	err = h.Repository.DeleteReaction(id)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -167,18 +125,6 @@ func (h *Handler) DeleteReaction(ctx *gin.Context) {
 	})
 }
 
-// AddReactionToCalculation godoc
-// @Summary Add reaction to calculation
-// @Description Добавить реакцию в калькуляцию
-// @Tags calculations
-// @Accept json
-// @Produce json
-// @Param id path int true "Reaction ID"
-// @Success 200 {object} apitypes.CalculationJSON
-// @Success 201 {object} apitypes.CalculationJSON
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions/{id}/add-to-calculation [post]
 func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 	calculation, created, err := h.Repository.GetCalculationDraft(h.Repository.GetUserID())
 	if err != nil {
@@ -193,6 +139,10 @@ func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 	}
 
 	err = h.Repository.AddReactionToCalculation(calculation.ID, reactionID)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -205,6 +155,10 @@ func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -213,18 +167,6 @@ func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 	ctx.JSON(status, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
-// UploadImage godoc
-// @Summary Upload image
-// @Description Загрузить изображение
-// @Tags reactions
-// @Accept multipart/form-data
-// @Produce json
-// @Param id path int true "Reaction ID"
-// @Param image formData file true "Image"
-// @Success 200 {object} map[string]string
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /reactions/{id}/image [post]
 func (h *Handler) UploadImage(ctx *gin.Context) {
 	reactionID, err := strconv.Atoi(ctx.Param("id"))
 	if err != nil {
@@ -239,13 +181,17 @@ func (h *Handler) UploadImage(ctx *gin.Context) {
 	}
 
 	reaction, err := h.Repository.UploadImage(ctx, reactionID, file)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"status": "uploaded",
+		"status":   "uploaded",
 		"reaction": apitypes.ReactionToJSON(reaction),
 	})
 }

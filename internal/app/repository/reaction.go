@@ -18,7 +18,7 @@ func (r *Repository) GetReactions() ([]ds.Reaction, error) {
 	err := r.db.Where("is_delete = false").Find(&reactions).Error
 	// обязательно проверяем ошибки, и если они появились - передаем выше, то есть хендлеру
 	if err != nil {
-		return nil, err
+		return nil, ErrorNotFound
 	}
 	if len(reactions) == 0 {
 		return nil, fmt.Errorf("массив пустой")
@@ -37,7 +37,7 @@ func (r *Repository) GetReaction(id int) (ds.Reaction, error) {
 		return ds.Reaction{}, sub.Error
 	}
 	if sub.RowsAffected == 0 {
-		return ds.Reaction{}, errors.New("record not found")
+		return ds.Reaction{}, ErrorNotFound
 	}
 	err := sub.First(&reaction).Error
 	if err != nil {
@@ -74,7 +74,7 @@ func (r *Repository) ChangeReaction(id int, reactionJSON apitypes.ReactionJSON) 
 	}
 	err := r.db.Where("id = ? and is_delete = ?", id, false).First(&reaction).Error
 	if err != nil {
-		return ds.Reaction{}, err
+		return ds.Reaction{}, ErrorNotFound
 	}
 	if reactionJSON.ConversationFactor <= 0 {
 		return ds.Reaction{}, errors.New("invalid conversation factor")
@@ -94,7 +94,7 @@ func (r *Repository) DeleteReaction(id int) error {
 
 	err := r.db.Where("id = ? and is_delete = ?", id, false).First(&reaction).Error
 	if err != nil {
-		return err
+		return ErrorNotFound
 	}
 	if reaction.ImgLink != "" {
 		err = minioInclude.DeleteObject(context.Background(), r.mc, minioInclude.GetImgBucket(), reaction.ImgLink)
@@ -113,7 +113,7 @@ func (r *Repository) DeleteReaction(id int) error {
 func (r *Repository) AddReactionToCalculation(calculationID int, reactionID int) error {
 	var reaction ds.Reaction
 	if err := r.db.First(&reaction, reactionID).Error; err != nil {
-		return err
+		return ErrorNotFound
 	}
 
 	var calculation ds.Calculation
@@ -145,15 +145,16 @@ func CalculateMass(mass float32, conversationFactor, outputKoef float32) (float3
 }
 
 func (r *Repository) UploadImage(ctx *gin.Context, reactionID int, file *multipart.FileHeader) ( ds.Reaction, error) {
+	reaction, err := r.GetReaction(reactionID)
+	if err != nil {
+		return ds.Reaction{}, ErrorNotFound
+	}
+	
 	fileName, err := minioInclude.UploadImage(ctx, r.mc, minioInclude.GetImgBucket(), file, reactionID)
 	if err != nil {
 		return ds.Reaction{},err
 	}
 
-	reaction, err := r.GetReaction(reactionID)
-	if err != nil {
-		return ds.Reaction{}, err
-	}
 	reaction.ImgLink = fileName
 	err = r.db.Save(&reaction).Error
 	if err != nil {

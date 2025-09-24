@@ -11,7 +11,6 @@ import (
 type Repository struct {
 	db     *gorm.DB
 	mc     *minio.Client
-	userId int
 }
 
 func NewRepository(dsn string) (*Repository, error) {
@@ -27,20 +26,11 @@ func NewRepository(dsn string) (*Repository, error) {
 
 	// Возвращаем объект Repository с подключенной базой данных
 	return &Repository{
-		db:     db,
-		mc:     mc,
-		userId: 0,
+		db: db,
+		mc: mc,
 	}, nil
 }
 
 func (r *Repository) GetUserID() int {
-	return r.userId
-}
-
-func (r *Repository) SetUserID(id int) {
-	r.userId = id
-}
-
-func (r *Repository) SignOut() {
-	r.userId = 0
+	return 1
 }

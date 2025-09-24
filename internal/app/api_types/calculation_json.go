@@ -10,13 +10,13 @@ import (
 // @Tags calculations
 type CalculationJSON struct {
 	ID             int        `json:"id"`
-	OutputKoef     *float32    `json:"output_koef"`
+	OutputKoef     *float32   `json:"output_koef"`
 	Status         string     `json:"status"`
 	DateCreate     time.Time  `json:"date_create"`
 	DateForm       *time.Time `json:"date_form"`
 	DateFinish     *time.Time `json:"date_finish"`
 	CreatorLogin   string     `json:"creator_login"`
-	ModeratorLogin *string     `json:"moderator_login"`
+	ModeratorLogin *string    `json:"moderator_login"`
 }
 
 func CalculationToJSON(c ds.Calculation, creatorLogin, moderatorLogin string) CalculationJSON {
