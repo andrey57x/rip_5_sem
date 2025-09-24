@@ -116,7 +116,7 @@ func (r *Repository) AddReactionToCalculation(calculationID int, reactionID int)
 		return ErrorNotFound
 	}
 
-	var calculation ds.Calculation
+	var calculation ds.MassCalculation
 	if err := r.db.First(&calculation, calculationID).Error; err != nil {
 		return err
 	}
@@ -144,15 +144,15 @@ func CalculateMass(mass float32, conversationFactor, outputKoef float32) (float3
 	return mass / conversationFactor / outputKoef, nil
 }
 
-func (r *Repository) UploadImage(ctx *gin.Context, reactionID int, file *multipart.FileHeader) ( ds.Reaction, error) {
+func (r *Repository) UploadImage(ctx *gin.Context, reactionID int, file *multipart.FileHeader) (ds.Reaction, error) {
 	reaction, err := r.GetReaction(reactionID)
 	if err != nil {
 		return ds.Reaction{}, ErrorNotFound
 	}
-	
+
 	fileName, err := minioInclude.UploadImage(ctx, r.mc, minioInclude.GetImgBucket(), file, reactionID)
 	if err != nil {
-		return ds.Reaction{},err
+		return ds.Reaction{}, err
 	}
 
 	reaction.ImgLink = fileName
@@ -163,7 +163,7 @@ func (r *Repository) UploadImage(ctx *gin.Context, reactionID int, file *multipa
 	return reaction, nil
 }
 
-func (r *Repository) GetModeratorAndCreatorLogin(calculation ds.Calculation) (string, string, error) {
+func (r *Repository) GetModeratorAndCreatorLogin(calculation ds.MassCalculation) (string, string, error) {
 	var creator ds.User
 	var moderator ds.User
 
@@ -180,6 +180,6 @@ func (r *Repository) GetModeratorAndCreatorLogin(calculation ds.Calculation) (st
 		}
 		moderatorLogin = moderator.Login
 	}
-	
+
 	return creator.Login, moderatorLogin, nil
 }

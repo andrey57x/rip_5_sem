@@ -42,7 +42,7 @@ func (h *Handler) DeleteReactionFromCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
 func (h *Handler) ChangeReactionCalculation(ctx *gin.Context) {

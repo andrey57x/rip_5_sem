@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) GetCalculation(ctx *gin.Context) {
+func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -18,7 +18,7 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 		return
 	}
 
-	reactions, calculation, err := h.Repository.GetCalculationReactions(id)
+	reactions, calculation, err := h.Repository.GetMassCalculationReactions(id)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -44,12 +44,12 @@ func (h *Handler) GetCalculation(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"calculation": apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin),
+		"calculation": apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin),
 		"reactions":   resp,
 	})
 }
 
-func (h *Handler) GetCalculationCart(ctx *gin.Context) {
+func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 	reactionsCount := h.Repository.GetCartCount(h.Repository.GetUserID())
 
 	if reactionsCount == 0 {
@@ -60,7 +60,7 @@ func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.CheckCurrentCalculationDraft(h.Repository.GetUserID())
+	calculation, err := h.Repository.CheckCurrentMassCalculationDraft(h.Repository.GetUserID())
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -77,7 +77,7 @@ func (h *Handler) GetCalculationCart(ctx *gin.Context) {
 	})
 }
 
-func (h *Handler) GetCalculations(ctx *gin.Context) {
+func (h *Handler) GetMassCalculations(ctx *gin.Context) {
 	fromDate := ctx.Query("from-date")
 	var from = time.Time{}
 	var to = time.Time{}
@@ -102,7 +102,7 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 
 	status := ctx.Query("status")
 
-	calculations, err := h.Repository.GetCalculations(from, to, status)
+	calculations, err := h.Repository.GetMassCalculations(from, to, status)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -111,7 +111,7 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	resp := make([]apitypes.CalculationJSON, 0, len(calculations))
+	resp := make([]apitypes.MassCalculationJSON, 0, len(calculations))
 	for _, c := range calculations {
 		creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(c)
 		if err == repository.ErrorNotFound {
@@ -122,12 +122,12 @@ func (h *Handler) GetCalculations(ctx *gin.Context) {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 			return
 		}
-		resp = append(resp, apitypes.CalculationToJSON(c, creatorLogin, moderatorLogin))
+		resp = append(resp, apitypes.MassCalculationToJSON(c, creatorLogin, moderatorLogin))
 	}
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) ChangeCalculation(ctx *gin.Context) {
+func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -135,13 +135,13 @@ func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 		return
 	}
 
-	var calculationJSON apitypes.CalculationJSON
+	var calculationJSON apitypes.MassCalculationJSON
 	if err := ctx.BindJSON(&calculationJSON); err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	calculation, err := h.Repository.ChangeCalculation(id, calculationJSON)
+	calculation, err := h.Repository.ChangeMassCalculation(id, calculationJSON)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -161,10 +161,10 @@ func (h *Handler) ChangeCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
-func (h *Handler) FormCalculation(ctx *gin.Context) {
+func (h *Handler) FormMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -174,7 +174,7 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 
 	status := "formed"
 
-	calculation, err := h.Repository.FormCalculation(id, status)
+	calculation, err := h.Repository.FormMassCalculation(id, status)
 
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -195,10 +195,10 @@ func (h *Handler) FormCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
-func (h *Handler) DeleteCalculation(ctx *gin.Context) {
+func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -208,7 +208,7 @@ func (h *Handler) DeleteCalculation(ctx *gin.Context) {
 
 	status := "deleted"
 
-	_, err = h.Repository.FormCalculation(id, status)
+	_, err = h.Repository.FormMassCalculation(id, status)
 
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -222,7 +222,7 @@ func (h *Handler) DeleteCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Calculation deleted"})
 }
 
-func (h *Handler) ModerateCalculation(ctx *gin.Context) {
+func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -236,7 +236,7 @@ func (h *Handler) ModerateCalculation(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.ModerateCalculation(id, statusJSON.Status)
+	calculation, err := h.Repository.ModerateMassCalculation(id, statusJSON.Status)
 
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -257,5 +257,5 @@ func (h *Handler) ModerateCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }

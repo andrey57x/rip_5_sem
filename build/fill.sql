@@ -20,7 +20,7 @@ VALUES
   (0, 'default', 'default', false);
 
 INSERT INTO
-  calculations (status, date_create, creator_id)
+  mass_calculations (status, date_create, creator_id)
 VALUES
   ('draft', '2025-09-07 10:15:30', 1),
   ('formed', '2025-09-06 10:15:30', 2),

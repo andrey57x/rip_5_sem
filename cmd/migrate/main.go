@@ -1,11 +1,12 @@
 package main
 
 import (
+	"Backend/internal/app/ds"
+	"Backend/internal/app/dsn"
+
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"Backend/internal/app/ds"
-	"Backend/internal/app/dsn"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 	// Migrate the schema
 	err = db.AutoMigrate(
 		&ds.Reaction{},
-		&ds.Calculation{},
+		&ds.MassCalculation{},
 		&ds.ReactionCalculation{},
 		&ds.User{},
 	)

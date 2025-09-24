@@ -126,7 +126,7 @@ func (h *Handler) DeleteReaction(ctx *gin.Context) {
 }
 
 func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
-	calculation, created, err := h.Repository.GetCalculationDraft(h.Repository.GetUserID())
+	calculation, created, err := h.Repository.GetMassCalculationDraft(h.Repository.GetUserID())
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
@@ -164,7 +164,7 @@ func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(status, apitypes.CalculationToJSON(calculation, creatorLogin, moderatorLogin))
+	ctx.JSON(status, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
 func (h *Handler) UploadImage(ctx *gin.Context) {

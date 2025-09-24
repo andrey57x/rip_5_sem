@@ -23,15 +23,15 @@ func (r *Repository) GetReactionCalculation(reactionID int, calculationID int) (
 	return reactionCalculation, nil
 }
 
-func (r *Repository) DeleteReactionFromCalculation(calculationID int, reactionID int) (ds.Calculation, error) {
-	var calculation ds.Calculation
+func (r *Repository) DeleteReactionFromCalculation(calculationID int, reactionID int) (ds.MassCalculation, error) {
+	var calculation ds.MassCalculation
 	err := r.db.Where("id = ?", calculationID).First(&calculation).Error
 	if err != nil {
-		return ds.Calculation{}, ErrorNotFound
+		return ds.MassCalculation{}, ErrorNotFound
 	}
 	err = r.db.Where("reaction_id = ? and calculation_id = ?", reactionID, calculationID).Delete(&ds.ReactionCalculation{}).Error
 	if err != nil {
-		return ds.Calculation{}, ErrorNotFound
+		return ds.MassCalculation{}, ErrorNotFound
 	}
 	return calculation, nil
 }

@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-// CalculationJSON model
+// MassCalculationJSON model
 // @Description Model for calculation
 // @Tags calculations
-type CalculationJSON struct {
+type MassCalculationJSON struct {
 	ID             int        `json:"id"`
 	OutputKoef     *float32   `json:"output_koef"`
 	Status         string     `json:"status"`
@@ -19,7 +19,7 @@ type CalculationJSON struct {
 	ModeratorLogin *string    `json:"moderator_login"`
 }
 
-func CalculationToJSON(c ds.Calculation, creatorLogin, moderatorLogin string) CalculationJSON {
+func MassCalculationToJSON(c ds.MassCalculation, creatorLogin, moderatorLogin string) MassCalculationJSON {
 	var dateForm, dateFinish *time.Time
 	if c.DateForm.Valid {
 		dateForm = &c.DateForm.Time
@@ -39,7 +39,7 @@ func CalculationToJSON(c ds.Calculation, creatorLogin, moderatorLogin string) Ca
 		outputKoef = &c.OutputKoef
 	}
 
-	return CalculationJSON{
+	return MassCalculationJSON{
 		ID:             c.ID,
 		OutputKoef:     outputKoef,
 		Status:         c.Status,
@@ -51,11 +51,11 @@ func CalculationToJSON(c ds.Calculation, creatorLogin, moderatorLogin string) Ca
 	}
 }
 
-func CalculationFromJSON(c CalculationJSON) ds.Calculation {
+func MassCalculationFromJSON(c MassCalculationJSON) ds.MassCalculation {
 	if c.OutputKoef == nil {
-		return ds.Calculation{}
+		return ds.MassCalculation{}
 	}
-	return ds.Calculation{
+	return ds.MassCalculation{
 		OutputKoef: *c.OutputKoef,
 	}
 }
