@@ -14,12 +14,16 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	reactions, calculation, err := h.Repository.GetMassCalculationReactions(id)
 	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+	if err == repository.ErrorDeleted {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
@@ -54,7 +58,7 @@ func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 
 	if reactionsCount == 0 {
 		ctx.JSON(http.StatusOK, gin.H{
-			"status":          "no_draft",
+			"id":              -1,
 			"reactions_count": reactionsCount,
 		})
 		return
@@ -71,7 +75,6 @@ func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"status":          "draft",
 		"reactions_count": reactionsCount,
 		"id":              calculation.ID,
 	})
@@ -131,7 +134,7 @@ func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -168,7 +171,7 @@ func (h *Handler) FormMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -202,7 +205,7 @@ func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -226,7 +229,7 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -243,7 +246,7 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 		return
 	}
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 

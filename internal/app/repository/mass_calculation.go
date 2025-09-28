@@ -14,12 +14,16 @@ var (
 	ErrorNotAllowed = errors.New("you are not allowed")
 	ErrorNoDraft    = errors.New("no draft for this user")
 	ErrorNotFound   = errors.New("not found")
+	ErrorDeleted    = errors.New("calculations is deleted")
 )
 
 func (r *Repository) GetMassCalculationReactions(id int) ([]ds.Reaction, ds.MassCalculation, error) {
 	calculation, err := r.GetSingleMassCalculation(id)
 	if err != nil {
 		return []ds.Reaction{}, ds.MassCalculation{}, err
+	}
+	if calculation.Status == "deleted" {
+		return []ds.Reaction{}, ds.MassCalculation{}, ErrorDeleted
 	}
 
 	var reactions []ds.Reaction
