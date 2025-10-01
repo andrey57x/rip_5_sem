@@ -10,6 +10,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type MassCalculationResponse struct {
+	Reactions       []ReactionWithOutput      `json:"reactions"`
+	MassCalculation apitypes.MassCalculationJSON `json:"calculation"`
+}
+
+type ReactionWithOutput struct {
+	Reaction   apitypes.ReactionJSON `json:"reaction"`
+	OutputMass float32               `json:"output_mass"`
+}
+
 func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -32,11 +42,6 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 		return
 	}
 
-	resp := make([]apitypes.ReactionJSON, 0, len(reactions))
-	for _, r := range reactions {
-		resp = append(resp, apitypes.ReactionToJSON(r))
-	}
-
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -47,10 +52,32 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"calculation": apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin),
-		"reactions":   resp,
-	})
+	calculationJSON := apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin)
+
+	reactionsWithOutput := make([]ReactionWithOutput, len(reactions))
+
+	for i, reaction := range reactions {
+		output, err := h.Repository.GetReactionCalculation(reaction.ID, calculation.ID)
+
+		if err != nil {
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		outputMass := output.OutputMass
+
+		reactionsWithOutput[i] = ReactionWithOutput{
+			Reaction:   apitypes.ReactionToJSON(reaction),
+			OutputMass: outputMass,
+		}
+	}
+
+	massCalculationResponse := MassCalculationResponse{
+		Reactions:       reactionsWithOutput,
+		MassCalculation: calculationJSON,
+	}
+
+	ctx.JSON(http.StatusOK, massCalculationResponse)
 }
 
 func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
