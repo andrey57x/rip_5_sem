@@ -10,7 +10,7 @@ import (
 )
 
 func (h *Handler) DeleteReactionFromCalculation(ctx *gin.Context) {
-	calculationID, err := strconv.Atoi(ctx.Param("calculation_id"))
+	calculationID, err := strconv.Atoi(ctx.Param("mass_calculation_id"))
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
@@ -46,7 +46,7 @@ func (h *Handler) DeleteReactionFromCalculation(ctx *gin.Context) {
 }
 
 func (h *Handler) ChangeReactionCalculation(ctx *gin.Context) {
-	calculationID, err := strconv.Atoi(ctx.Param("calculation_id"))
+	calculationID, err := strconv.Atoi(ctx.Param("mass_calculation_id"))
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return

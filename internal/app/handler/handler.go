@@ -19,30 +19,32 @@ func NewHandler(r *repository.Repository) *Handler {
 
 // RegisterHandler Функция, в которой мы отдельно регистрируем маршруты, чтобы не писать все в одном месте
 func (h *Handler) RegisterHandler(router *gin.Engine) {
-	router.GET("/reactions", h.GetReactions)
-	router.GET("/reactions/:id", h.GetReaction)
-	router.POST("/reactions", h.CreateReaction)
-	router.PUT("/reactions/:id", h.ChangeReaction)
-	router.DELETE("/reactions/:id", h.DeleteReaction)
-	router.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
-	router.POST("/reactions/:id/image", h.UploadImage)
+	api := router.Group("/api/v1")
 
-	router.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
-	router.GET("/mass-calculations", h.GetMassCalculations)
-	router.GET("/mass-calculations/:id", h.GetMassCalculation)
-	router.PUT("/mass-calculations/:id", h.ChangeMassCalculation)
-	router.PUT("/mass-calculations/:id/form", h.FormMassCalculation)
-	router.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
-	router.DELETE("/mass-calculations/:id", h.DeleteMassCalculation)
+	api.GET("/reactions", h.GetReactions)
+	api.GET("/reactions/:id", h.GetReaction)
+	api.POST("/reactions", h.CreateReaction)
+	api.PUT("/reactions/:id", h.ChangeReaction)
+	api.DELETE("/reactions/:id", h.DeleteReaction)
+	api.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
+	api.POST("/reactions/:id/image", h.UploadImage)
 
-	router.DELETE("/reaction-calculations/:calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
-	router.PUT("/reaction-calculations/:calculation_id/:reaction_id", h.ChangeReactionCalculation)
+	api.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
+	api.GET("/mass-calculations", h.GetMassCalculations)
+	api.GET("/mass-calculations/:id", h.GetMassCalculation)
+	api.PUT("/mass-calculations/:id", h.ChangeMassCalculation)
+	api.PUT("/mass-calculations/:id/form", h.FormMassCalculation)
+	api.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
+	api.DELETE("/mass-calculations/:id", h.DeleteMassCalculation)
 
-	router.POST("/users/sign-up", h.CreateUser)
-	router.GET("/users/:id/profile", h.GetProfile)
-	router.PUT("/users/:id/profile", h.ChangeProfile)
-	router.POST("/users/sign-in", h.SignIn)
-	router.POST("/users/sign-out", h.SignOut)
+	api.DELETE("/reaction-calculations/:mass_calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
+	api.PUT("/reaction-calculations/:mass_calculation_id/:reaction_id", h.ChangeReactionCalculation)
+
+	api.POST("/users/sign-up", h.CreateUser)
+	api.GET("/users/:id/profile", h.GetProfile)
+	api.PUT("/users/:id/profile", h.ChangeProfile)
+	api.POST("/users/sign-in", h.SignIn)
+	api.POST("/users/sign-out", h.SignOut)
 }
 
 // RegisterStatic То же самое, что и с маршрутами, регистрируем статику
