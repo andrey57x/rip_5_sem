@@ -2,22 +2,26 @@ package handler
 
 import (
 	apitypes "Backend/internal/app/api_types"
+	"Backend/internal/app/ds"
 	"Backend/internal/app/repository"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type MassCalculationResponse struct {
-	Reactions       []ReactionWithOutput      `json:"reactions"`
+	Reactions       []ReactionWithOutput         `json:"reactions"`
 	MassCalculation apitypes.MassCalculationJSON `json:"calculation"`
 }
 
 type ReactionWithOutput struct {
 	Reaction   apitypes.ReactionJSON `json:"reaction"`
 	OutputMass float32               `json:"output_mass"`
+	InputMass  float32               `json:"input_mass"`
 }
 
 func (h *Handler) GetMassCalculation(ctx *gin.Context) {
@@ -39,6 +43,10 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
 		return
 	}
 
@@ -65,10 +73,12 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 		}
 
 		outputMass := output.OutputMass
+		inputMass := output.InputMass
 
 		reactionsWithOutput[i] = ReactionWithOutput{
 			Reaction:   apitypes.ReactionToJSON(reaction),
 			OutputMass: outputMass,
+			InputMass:  inputMass,
 		}
 	}
 
@@ -81,7 +91,13 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 }
 
 func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
-	reactionsCount := h.Repository.GetCartCount(h.Repository.GetUserID())
+	userID, err := getUserID(ctx)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	reactionsCount := h.Repository.GetCartCount(userID)
 
 	if reactionsCount == 0 {
 		ctx.JSON(http.StatusOK, gin.H{
@@ -91,7 +107,7 @@ func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.CheckCurrentMassCalculationDraft(h.Repository.GetUserID())
+	calculation, err := h.Repository.CheckCurrentMassCalculationDraft(userID)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -141,6 +157,9 @@ func (h *Handler) GetMassCalculations(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	calculations = h.filterCalculationsByAuth(calculations, ctx)
+
 	resp := make([]apitypes.MassCalculationJSON, 0, len(calculations))
 	for _, c := range calculations {
 		creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(c)
@@ -180,6 +199,10 @@ func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
 	if err == repository.ErrorNotFound {
@@ -195,6 +218,12 @@ func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 }
 
 func (h *Handler) FormMassCalculation(ctx *gin.Context) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -202,9 +231,23 @@ func (h *Handler) FormMassCalculation(ctx *gin.Context) {
 		return
 	}
 
+	calculation, err := h.Repository.GetSingleMassCalculation(id)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if calculation.CreatorID != userID {
+		h.errorHandler(ctx, http.StatusForbidden, errors.New("only creator can form mass calculation"))
+		return
+	}
+
 	status := "formed"
 
-	calculation, err := h.Repository.FormMassCalculation(id, status)
+	calculation, err = h.Repository.FormMassCalculation(id, status)
 
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -236,6 +279,20 @@ func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 		return
 	}
 
+	calculation, err := h.Repository.GetSingleMassCalculation(id)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
+
 	status := "deleted"
 
 	_, err = h.Repository.FormMassCalculation(id, status)
@@ -253,6 +310,12 @@ func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 }
 
 func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -266,7 +329,21 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.ModerateMassCalculation(id, statusJSON.Status)
+	user, err := h.Repository.GetUserByID(userID)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !user.IsModerator {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
+
+	calculation, err := h.Repository.ModerateMassCalculation(id, statusJSON.Status, userID)
 
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
@@ -288,4 +365,47 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
+}
+
+func (h *Handler) filterCalculationsByAuth(calculations []ds.MassCalculation, ctx *gin.Context) []ds.MassCalculation {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return []ds.MassCalculation{}
+	}
+
+	user, err := h.Repository.GetUserByID(userID)
+	if err == repository.ErrorNotFound {
+		return []ds.MassCalculation{}
+	}
+	if err != nil {
+		return []ds.MassCalculation{}
+	}
+
+	if user.IsModerator {
+		return calculations
+	}
+
+	for _, calculation := range calculations {
+		if calculation.CreatorID == userID {
+			return []ds.MassCalculation{calculation}
+		}
+	}
+	return []ds.MassCalculation{}
+}
+
+func (h *Handler) hasAccessToCalculation(creatorID uuid.UUID, ctx *gin.Context) bool {
+	userID, err := getUserID(ctx)
+	if err != nil {
+		return false
+	}
+
+	user, err := h.Repository.GetUserByID(userID)
+	if err == repository.ErrorNotFound {
+		return false
+	}
+	if err != nil {
+		return false
+	}
+
+	return creatorID == userID || user.IsModerator
 }

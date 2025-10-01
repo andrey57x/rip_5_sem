@@ -7,6 +7,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +39,7 @@ func (r *Repository) GetMassCalculationReactions(id int) ([]ds.Reaction, ds.Mass
 }
 
 // GetCartCount для получения количества услуг в заявке
-func (r *Repository) GetCartCount(creatorID int) int {
+func (r *Repository) GetCartCount(creatorID uuid.UUID) int {
 	var count int64
 
 	calculation, err := r.CheckCurrentMassCalculationDraft(creatorID)
@@ -54,7 +55,7 @@ func (r *Repository) GetCartCount(creatorID int) int {
 	return int(count)
 }
 
-func (r *Repository) CheckCurrentMassCalculationDraft(creatorID int) (ds.MassCalculation, error) {
+func (r *Repository) CheckCurrentMassCalculationDraft(creatorID uuid.UUID) (ds.MassCalculation, error) {
 	var calculation ds.MassCalculation
 
 	res := r.db.Where("creator_id = ? AND status = ?", creatorID, "draft").Limit(1).Find(&calculation)
@@ -66,7 +67,7 @@ func (r *Repository) CheckCurrentMassCalculationDraft(creatorID int) (ds.MassCal
 	return calculation, nil
 }
 
-func (r *Repository) GetMassCalculationDraft(creatorID int) (ds.MassCalculation, bool, error) {
+func (r *Repository) GetMassCalculationDraft(creatorID uuid.UUID) (ds.MassCalculation, bool, error) {
 	calculation, err := r.CheckCurrentMassCalculationDraft(creatorID)
 	if err == ErrorNoDraft {
 		calculation = ds.MassCalculation{
@@ -160,12 +161,10 @@ func (r *Repository) FormMassCalculation(id int, status string) (ds.MassCalculat
 	return calculation, nil
 }
 
-func (r *Repository) ModerateMassCalculation(id int, status string) (ds.MassCalculation, error) {
+func (r *Repository) ModerateMassCalculation(id int, status string, currUserId uuid.UUID) (ds.MassCalculation, error) {
 	if status != "completed" && status != "rejected" {
 		return ds.MassCalculation{}, errors.New("wrong status")
 	}
-
-	userId := r.GetUserID()
 
 	calculation, err := r.GetSingleMassCalculation(id)
 	if err != nil {
@@ -180,8 +179,8 @@ func (r *Repository) ModerateMassCalculation(id int, status string) (ds.MassCalc
 			Time:  time.Now(),
 			Valid: true,
 		},
-		ModeratorID: sql.NullInt64{
-			Int64: int64(userId),
+		ModeratorID: uuid.NullUUID{
+			UUID:  currUserId,
 			Valid: true,
 		},
 	}).Error

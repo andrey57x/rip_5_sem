@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"Backend/internal/app/repository"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func (h *Handler) GetReactions(ctx *gin.Context) {
@@ -30,6 +32,7 @@ func (h *Handler) GetReactions(ctx *gin.Context) {
 			return
 		}
 	}
+
 	resp := make([]apitypes.ReactionJSON, 0, len(reactions))
 	for _, r := range reactions {
 		resp = append(resp, apitypes.ReactionToJSON(r))
@@ -126,7 +129,19 @@ func (h *Handler) DeleteReaction(ctx *gin.Context) {
 }
 
 func (h *Handler) AddReactionToCalculation(ctx *gin.Context) {
-	calculation, created, err := h.Repository.GetMassCalculationDraft(h.Repository.GetUserID())
+	userIDStr, exits := ctx.Get("user_id")
+	if !exits {
+		h.errorHandler(ctx, http.StatusBadRequest, errors.New("user_id not found"))
+		return
+	}
+
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	calculation, created, err := h.Repository.GetMassCalculationDraft(userID)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return

@@ -21,30 +21,38 @@ func NewHandler(r *repository.Repository) *Handler {
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	api := router.Group("/api/v1")
 
-	api.GET("/reactions", h.GetReactions)
-	api.GET("/reactions/:id", h.GetReaction)
-	api.POST("/reactions", h.CreateReaction)
-	api.PUT("/reactions/:id", h.ChangeReaction)
-	api.DELETE("/reactions/:id", h.DeleteReaction)
-	api.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
-	api.POST("/reactions/:id/image", h.UploadImage)
+	unauthorized := api.Group("/")
+	unauthorized.POST("/users/sign-in", h.SignIn)
+	unauthorized.POST("/users/sign-up", h.SignUp)
+	unauthorized.GET("/reactions", h.GetReactions)
+	unauthorized.GET("/reactions/:id", h.GetReaction)
 
-	api.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
-	api.GET("/mass-calculations", h.GetMassCalculations)
-	api.GET("/mass-calculations/:id", h.GetMassCalculation)
-	api.PUT("/mass-calculations/:id", h.ChangeMassCalculation)
-	api.PUT("/mass-calculations/:id/form", h.FormMassCalculation)
-	api.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
-	api.DELETE("/mass-calculations/:id", h.DeleteMassCalculation)
+	authorized := api.Group("/")
+	authorized.Use(h.ModeratorMiddleware(false))
 
-	api.DELETE("/reaction-calculations/:mass_calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
-	api.PUT("/reaction-calculations/:mass_calculation_id/:reaction_id", h.ChangeReactionCalculation)
+	authorized.POST("/reactions", h.CreateReaction)
+	authorized.PUT("/reactions/:id", h.ChangeReaction)
+	authorized.DELETE("/reactions/:id", h.DeleteReaction)
+	authorized.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
+	authorized.POST("/reactions/:id/image", h.UploadImage)
 
-	api.POST("/users/sign-up", h.CreateUser)
-	api.GET("/users/:id/profile", h.GetProfile)
-	api.PUT("/users/:id/profile", h.ChangeProfile)
-	api.POST("/users/sign-in", h.SignIn)
-	api.POST("/users/sign-out", h.SignOut)
+	authorized.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
+	authorized.GET("/mass-calculations", h.GetMassCalculations)
+	authorized.GET("/mass-calculations/:id", h.GetMassCalculation)
+	authorized.PUT("/mass-calculations/:id", h.ChangeMassCalculation)
+	authorized.PUT("/mass-calculations/:id/form", h.FormMassCalculation)
+	authorized.DELETE("/mass-calculations/:id", h.DeleteMassCalculation)
+
+	authorized.DELETE("/reaction-calculations/:mass_calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
+	authorized.PUT("/reaction-calculations/:mass_calculation_id/:reaction_id", h.ChangeReactionCalculation)
+
+	authorized.GET("/users/:login/profile", h.GetProfile)
+	authorized.PUT("/users/:login/profile", h.ChangeProfile)
+	authorized.POST("/users/sign-out", h.SignOut)
+
+	moderator := api.Group("/")
+	moderator.Use(h.ModeratorMiddleware(true))
+	moderator.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
 }
 
 // RegisterStatic То же самое, что и с маршрутами, регистрируем статику

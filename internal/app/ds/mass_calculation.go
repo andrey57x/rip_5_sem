@@ -3,6 +3,8 @@ package ds
 import (
 	"database/sql"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type MassCalculation struct {
@@ -12,8 +14,8 @@ type MassCalculation struct {
 	DateCreate  time.Time     `gorm:"not null"`
 	DateForm    sql.NullTime  `gorm:"default:null"`
 	DateFinish  sql.NullTime  `gorm:"default:null"`
-	CreatorID   int           `gorm:"not null"`
-	ModeratorID sql.NullInt64 `gorm:"default:null"`
+	CreatorID   uuid.UUID     `gorm:"not null"`
+	ModeratorID uuid.NullUUID `gorm:"default:null"`
 
 	Creator   User `gorm:"foreignKey:CreatorID"`
 	Moderator User `gorm:"foreignKey:ModeratorID"`

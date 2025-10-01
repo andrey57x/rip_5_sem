@@ -22,7 +22,21 @@ func (h *Handler) DeleteReactionFromCalculation(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.DeleteReactionFromCalculation(calculationID, reactionID)
+	calculation, err := h.Repository.GetSingleMassCalculation(calculationID)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
+
+	calculation, err = h.Repository.DeleteReactionFromCalculation(calculationID, reactionID)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -55,6 +69,20 @@ func (h *Handler) ChangeReactionCalculation(ctx *gin.Context) {
 	reactionID, err := strconv.Atoi(ctx.Param("reaction_id"))
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	calculation, err := h.Repository.GetSingleMassCalculation(calculationID)
+	if err == repository.ErrorNotFound {
+		h.errorHandler(ctx, http.StatusNotFound, err)
+		return
+	}
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
 		return
 	}
 

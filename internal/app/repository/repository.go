@@ -2,15 +2,18 @@ package repository
 
 import (
 	minioInclude "Backend/internal/app/minio"
+	"os"
 
+	"github.com/go-redis/redis"
 	"github.com/minio/minio-go/v7"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 type Repository struct {
-	db     *gorm.DB
-	mc     *minio.Client
+	db *gorm.DB
+	mc *minio.Client
+	rd *redis.Client
 }
 
 func NewRepository(dsn string) (*Repository, error) {
@@ -24,13 +27,25 @@ func NewRepository(dsn string) (*Repository, error) {
 		return nil, err
 	}
 
+	// Подключаемся к Redis
+	rd := redis.NewClient(&redis.Options{
+		Addr:     os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT"),
+		Password: "",
+		DB:       0,
+	})
+
 	// Возвращаем объект Repository с подключенной базой данных
 	return &Repository{
 		db: db,
 		mc: mc,
+		rd: rd,
 	}, nil
 }
 
-func (r *Repository) GetUserID() int {
-	return 1
+func (r *Repository) GetToken(userID string) (string, error) {
+	token, err := r.rd.Get(userID).Result()
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

@@ -4,14 +4,17 @@ import (
 	apitypes "Backend/internal/app/api_types"
 	"Backend/internal/app/ds"
 	"errors"
+	"os"
+	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
-func (r *Repository) GetUserByID(id int) (ds.User, error) {
+func (r *Repository) GetUserByID(id uuid.UUID) (ds.User, error) {
 	user := ds.User{}
-	if id < 0 {
-		return ds.User{}, errors.New("invalid id, it must be >= 0")
-	}
-	sub := r.db.Where("id = ?", id).Find(&user)
+	sub := r.db.Where("uuid = ?", id).Find(&user)
 	if sub.Error != nil {
 		return ds.User{}, sub.Error
 	}
@@ -52,13 +55,10 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 	if _, err := r.GetUserByLogin(user.Login); err == nil {
 		return ds.User{}, errors.New("user already exists")
 	}
-	currUser, err := r.GetUserByID(r.GetUserID())
-	if err != nil {
-		return ds.User{}, err
-	}
-	if user.IsModerator && !currUser.IsModerator {
-		return ds.User{}, errors.New("you are not a moderator")
-	}
+	user.UUID = uuid.New()
+
+	logrus.Info(user.Login, user.Password, user.IsModerator)
+
 	sub := r.db.Create(&user)
 	if sub.Error != nil {
 		return ds.User{}, sub.Error
@@ -66,9 +66,9 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 	return user, nil
 }
 
-func (r *Repository) ChangeProfile(id int, userJSON apitypes.UserJSON) (ds.User, error) {
+func (r *Repository) ChangeProfile(login string, userJSON apitypes.UserJSON) (ds.User, error) {
 	user := apitypes.UserFromJSON(userJSON)
-	currUser, err := r.GetUserByID(id)
+	currUser, err := r.GetUserByLogin(login)
 	if err != nil {
 		return ds.User{}, err
 	}
@@ -80,4 +80,94 @@ func (r *Repository) ChangeProfile(id int, userJSON apitypes.UserJSON) (ds.User,
 		return ds.User{}, err
 	}
 	return currUser, nil
+}
+
+func (r *Repository) SignIn(userJSON apitypes.UserJSON) (string, error) {
+	user, err := r.GetUserByLogin(userJSON.Login)
+	if err != nil {
+		return "", err
+	}
+
+	if user.Password != userJSON.Password {
+		return "", errors.New("invalid password")
+	}
+
+	token, err := GenerateToken(user.UUID, user.IsModerator)
+	if err != nil {
+		return "", err
+	}
+	
+	err = r.SaveJWTToken(user.UUID, token)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+func (r *Repository) SignOut(id uuid.UUID) error {
+	err := r.DeleteJWTToken(id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GenerateToken(id uuid.UUID, isModerator bool) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+
+	claims := token.Claims.(jwt.MapClaims)
+	claims["authorized"] = true
+	claims["user_id"] = id.String()
+	claims["is_moderator"] = isModerator
+	claims["exp"] = time.Hour * 1
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_KEY")))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+func (r *Repository) SaveJWTToken(uuid uuid.UUID, token string) error {
+	expiration := time.Hour * 1
+
+	err := r.rd.Set(uuid.String(), token, expiration).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) DeleteJWTToken(uuid uuid.UUID) error {
+	err := r.rd.Del(uuid.String()).Err()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+
+
+
+
+
+func (r *Repository) FillWithUsers() {
+	users := []ds.User{
+		{
+			Login: "admin",
+			Password: "admin",
+			IsModerator: true,
+		},
+		{
+			Login: "user",
+			Password: "user",
+			IsModerator: false,
+		},
+	}
+	for _, user := range users {
+		r.CreateUser(apitypes.UserToJSON(user))
+	}
 }

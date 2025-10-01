@@ -167,14 +167,14 @@ func (r *Repository) GetModeratorAndCreatorLogin(calculation ds.MassCalculation)
 	var creator ds.User
 	var moderator ds.User
 
-	err := r.db.Where("id = ?", calculation.CreatorID).First(&creator).Error
+	err := r.db.Where("uuid = ?", calculation.CreatorID).First(&creator).Error
 	if err != nil {
 		return "", "", err
 	}
 
 	var moderatorLogin string
 	if calculation.ModeratorID.Valid {
-		err = r.db.Where("id = ?", calculation.ModeratorID.Int64).First(&moderator).Error
+		err = r.db.Where("uuid = ?", calculation.ModeratorID).First(&moderator).Error
 		if err != nil {
 			return "", "", err
 		}
