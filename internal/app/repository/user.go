@@ -9,7 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (r *Repository) GetUserByID(id uuid.UUID) (ds.User, error) {
@@ -55,9 +55,14 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 	if _, err := r.GetUserByLogin(user.Login); err == nil {
 		return ds.User{}, errors.New("user already exists")
 	}
-	user.UUID = uuid.New()
 
-	logrus.Info(user.Login, user.Password, user.IsModerator)
+	hashedPassword, err := HashPassword(user.Password)
+	if err != nil {
+		return ds.User{}, err
+	}
+	user.Password = hashedPassword
+
+	user.UUID = uuid.New()
 
 	sub := r.db.Create(&user)
 	if sub.Error != nil {
@@ -67,15 +72,29 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 }
 
 func (r *Repository) ChangeProfile(login string, userJSON apitypes.UserJSON) (ds.User, error) {
-	user := apitypes.UserFromJSON(userJSON)
 	currUser, err := r.GetUserByLogin(login)
 	if err != nil {
 		return ds.User{}, err
 	}
-	if user.IsModerator && !currUser.IsModerator {
-		user.IsModerator = false
+
+	if userJSON.Login != "" {
+		currUser.Login = userJSON.Login
 	}
-	err = r.db.Model(&currUser).Updates(user).Error
+
+	if userJSON.Password != "" {
+		hashedPassword, err := HashPassword(userJSON.Password)
+		if err != nil {
+			return ds.User{}, err
+		}
+		currUser.Password = hashedPassword
+	}
+
+	if userJSON.IsModerator && !currUser.IsModerator {
+		userJSON.IsModerator = false
+	}
+	currUser.IsModerator = userJSON.IsModerator
+
+	err = r.db.Save(&currUser).Error
 	if err != nil {
 		return ds.User{}, err
 	}
@@ -88,7 +107,7 @@ func (r *Repository) SignIn(userJSON apitypes.UserJSON) (string, error) {
 		return "", err
 	}
 
-	if user.Password != userJSON.Password {
+	if !CheckPasswordHash(userJSON.Password, user.Password) {
 		return "", errors.New("invalid password")
 	}
 
@@ -96,21 +115,8 @@ func (r *Repository) SignIn(userJSON apitypes.UserJSON) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
-	err = r.SaveJWTToken(user.UUID, token)
-	if err != nil {
-		return "", err
-	}
 
 	return token, nil
-}
-
-func (r *Repository) SignOut(id uuid.UUID) error {
-	err := r.DeleteJWTToken(id)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func GenerateToken(id uuid.UUID, isModerator bool) (string, error) {
@@ -120,7 +126,7 @@ func GenerateToken(id uuid.UUID, isModerator bool) (string, error) {
 	claims["authorized"] = true
 	claims["user_id"] = id.String()
 	claims["is_moderator"] = isModerator
-	claims["exp"] = time.Hour * 1
+	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_KEY")))
 	if err != nil {
@@ -130,40 +136,26 @@ func GenerateToken(id uuid.UUID, isModerator bool) (string, error) {
 	return tokenString, nil
 }
 
-func (r *Repository) SaveJWTToken(uuid uuid.UUID, token string) error {
-	expiration := time.Hour * 1
-
-	err := r.rd.Set(uuid.String(), token, expiration).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
 }
 
-func (r *Repository) DeleteJWTToken(uuid uuid.UUID) error {
-	err := r.rd.Del(uuid.String()).Err()
-	if err != nil {
-		return err
-	}
-	return nil
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }
-
-
-
-
-
-
 
 func (r *Repository) FillWithUsers() {
 	users := []ds.User{
 		{
-			Login: "admin",
-			Password: "admin",
+			Login:       "admin",
+			Password:    "admin",
 			IsModerator: true,
 		},
 		{
-			Login: "user",
-			Password: "user",
+			Login:       "user",
+			Password:    "user",
 			IsModerator: false,
 		},
 	}

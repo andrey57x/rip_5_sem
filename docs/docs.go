@@ -15,51 +15,62 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/calculations": {
+        "/mass-calculations": {
             "get": {
-                "description": "Получить расчеты",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Возвращает список расчетов с возможностью фильтрации по диапазону дат и статусу.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Get calculations",
+                "summary": "Получить список расчетов",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "From date",
+                        "description": "Нижняя граница даты (YYYY-MM-DD)",
                         "name": "from-date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "To date",
+                        "description": "Верхняя граница даты (YYYY-MM-DD)",
                         "name": "to-date",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Status",
+                        "description": "Статус расчета (draft, formed, moderated, deleted)",
                         "name": "status",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Список расчетов",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/apitypes.CalculationJSON"
+                                "$ref": "#/definitions/apitypes.MassCalculationJSON"
                             }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный формат даты или параметров запроса\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдены записи",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -68,7 +79,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -79,22 +90,31 @@ const docTemplate = `{
                 }
             }
         },
-        "/calculations/calculation-cart": {
+        "/mass-calculations/calculation-cart": {
             "get": {
-                "description": "Получить черновик расчета",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Возвращает количество реакций в текущей корзине пользователя и ID черновика расчета (если есть).",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Get calculation cart",
+                "summary": "Получить карточку черновика расчета для пользователя",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Поля: id (int, -1 если нет черновика), reactions_count (int)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорректный запрос (например, неверный токен)\"}",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -102,8 +122,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Черновик не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -112,7 +132,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -123,23 +143,25 @@ const docTemplate = `{
                 }
             }
         },
-        "/calculations/{id}": {
+        "/mass-calculations/{id}": {
             "get": {
-                "description": "Получить расчет по id",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Возвращает расчет и список реакций, входящих в неё, с рассчитанными массами.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Get calculation",
+                "summary": "Получить расчет по ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
+                        "description": "ID расчета",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -147,13 +169,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Объект расчета с реакциями",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/handler.MassCalculationResponse"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Расчет не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -162,7 +202,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -173,7 +213,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Изменить расчет",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет расчет по ID: принимает JSON расчета и возвращает обновлённый объект.",
                 "consumes": [
                     "application/json"
                 ],
@@ -181,36 +226,54 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Change calculation",
+                "summary": "Изменить поля расчета",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
+                        "description": "ID расчета",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Change calculation",
+                        "description": "Тело запроса — объект расчета",
                         "name": "calculation",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Обновлённый расчет",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный формат запроса или тела",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Расчет не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -219,7 +282,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -230,21 +293,23 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удалить расчет",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Помечает расчет как удалённый. Доступ — владелец или модератор. Возвращает {\"message\":\"Calculation deleted\"}.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Delete calculation",
+                "summary": "Удалить расчет (логическое удаление)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
+                        "description": "ID расчета",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -252,13 +317,34 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "message",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный формат запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Расчет не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -267,7 +353,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -278,23 +364,25 @@ const docTemplate = `{
                 }
             }
         },
-        "/calculations/{id}/form": {
+        "/mass-calculations/{id}/form": {
             "put": {
-                "description": "Сформировать расчет",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Переводит расчет в статус formed — доступен только создателю.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Form calculation",
+                "summary": "Сформировать расчет",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
+                        "description": "ID расчета",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -302,13 +390,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Расчет успешно сформирована",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный формат запроса",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Только создатель может формировать расчет",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Расчет не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -317,7 +423,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -328,9 +434,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/calculations/{id}/moderate": {
+        "/mass-calculations/{id}/moderate": {
             "put": {
-                "description": "Модерировать расчет",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Устанавливает статус расчета — только модератор может это сделать.",
                 "consumes": [
                     "application/json"
                 ],
@@ -338,19 +449,19 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Moderate calculation",
+                "summary": "Модерировать расчет (только модератор)",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
+                        "description": "ID расчета",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Moderate calculation",
+                        "description": "Тело запроса с полем status",
                         "name": "status",
                         "in": "body",
                         "required": true,
@@ -361,13 +472,40 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Расчет после модерации",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректные входные данные\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Неавторизован\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Только модератор может модерацию",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Расчет не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -376,7 +514,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -387,9 +525,14 @@ const docTemplate = `{
                 }
             }
         },
-        "/reaction-calculations/{calculation_id}/{reaction_id}": {
+        "/reaction-calculations/{mass_calculation_id}/{reaction_id}": {
             "put": {
-                "description": "Изменить поле для реакции в расчете",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет поле расчёта реакции (output mass).",
                 "consumes": [
                     "application/json"
                 ],
@@ -397,27 +540,27 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "reactions calculations"
+                    "reaction-calculations"
                 ],
-                "summary": "Change reaction calculation",
+                "summary": "Изменить поле связи многие ко многим",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
-                        "name": "calculation_id",
+                        "description": "ID расчета",
+                        "name": "mass_calculation_id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "reaction_id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Change reaction calculation",
-                        "name": "reaction_calculation",
+                        "description": "Новые значения расчёта",
+                        "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -427,13 +570,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Обновлённый расчёт",
                         "schema": {
                             "$ref": "#/definitions/apitypes.ReactionCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -442,7 +603,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -453,28 +614,30 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удалить реакцию из расчета",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Удаляет связь реакции и расчета и возвращает обновлённый расчет.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "reactions calculations"
+                    "reaction-calculations"
                 ],
-                "summary": "Delete reaction from calculation",
+                "summary": "Удалить реакцию из расчета",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Calculation ID",
-                        "name": "calculation_id",
+                        "description": "ID расчета",
+                        "name": "mass_calculation_id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "reaction_id",
                         "in": "path",
                         "required": true
@@ -482,13 +645,31 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Обновлённый расчет",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Некорректный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Не найдено",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -497,7 +678,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -510,28 +691,25 @@ const docTemplate = `{
         },
         "/reactions": {
             "get": {
-                "description": "Получить список реакций, можно фильтровать по title",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Возвращает все реакции или фильтрует по параметру reaction_title.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reactions"
                 ],
-                "summary": "List reactions",
+                "summary": "Получить список реакций",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Search by title",
+                        "description": "Фильтр по заголовку реакции",
                         "name": "reaction_title",
                         "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Список реакций",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -540,7 +718,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -551,7 +729,12 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Создать реакцию",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Создаёт новую реакцию, возвращает Location в заголовках и объект реакции.",
                 "consumes": [
                     "application/json"
                 ],
@@ -561,10 +744,10 @@ const docTemplate = `{
                 "tags": [
                     "reactions"
                 ],
-                "summary": "Create reaction",
+                "summary": "Создать реакцию",
                 "parameters": [
                     {
-                        "description": "Create reaction",
+                        "description": "Данные реакции",
                         "name": "reaction",
                         "in": "body",
                         "required": true,
@@ -575,13 +758,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Реакция создана",
                         "schema": {
                             "$ref": "#/definitions/apitypes.ReactionJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный запрос",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -590,7 +773,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -603,21 +786,18 @@ const docTemplate = `{
         },
         "/reactions/{id}": {
             "get": {
-                "description": "Получить реакцию по id",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Возвращает реакцию по id.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reactions"
                 ],
-                "summary": "Get reaction",
+                "summary": "Получить реакцию по ID",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -625,13 +805,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Реакция",
                         "schema": {
                             "$ref": "#/definitions/apitypes.ReactionJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Реакция не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -640,7 +829,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -651,7 +840,12 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Изменить реакцию",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет реакцию по ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -661,17 +855,17 @@ const docTemplate = `{
                 "tags": [
                     "reactions"
                 ],
-                "summary": "Change reaction",
+                "summary": "Обновить реакцию",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Change reaction",
+                        "description": "Новые данные реакции",
                         "name": "reaction",
                         "in": "body",
                         "required": true,
@@ -682,13 +876,22 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Обновлённая реакция",
                         "schema": {
                             "$ref": "#/definitions/apitypes.ReactionJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Реакция не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -697,7 +900,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -708,21 +911,23 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Удалить реакцию",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Логическое удаление реакции. Возвращает {\"status\":\"deleted\"}.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "reactions"
                 ],
-                "summary": "Delete reaction",
+                "summary": "Удалить реакцию",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -730,7 +935,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "status",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -739,7 +944,16 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Реакция не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -748,7 +962,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -761,21 +975,23 @@ const docTemplate = `{
         },
         "/reactions/{id}/add-to-calculation": {
             "post": {
-                "description": "Добавить реакцию в калькуляцию",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Добавляет реакцию в черновик пользователя (если черновика нет — создаёт). Возвращает сам расчет.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "calculations"
+                    "mass-calculations"
                 ],
-                "summary": "Add reaction to calculation",
+                "summary": "Добавить реакцию в текущий черновик расчета",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -783,19 +999,28 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Если добавление в существующий черновик",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "201": {
-                        "description": "Created",
+                        "description": "Если был создан новый черновик",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.CalculationJSON"
+                            "$ref": "#/definitions/apitypes.MassCalculationJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Ошибка запроса или авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Реакция/калькуляция не найдены",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -804,7 +1029,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -817,7 +1042,12 @@ const docTemplate = `{
         },
         "/reactions/{id}/image": {
             "post": {
-                "description": "Загрузить изображение",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Загружает файл изображения и возвращает объект вида {\"status\":\"uploaded\", \"reaction\": \u003cReactionJSON\u003e}.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -827,18 +1057,18 @@ const docTemplate = `{
                 "tags": [
                     "reactions"
                 ],
-                "summary": "Upload image",
+                "summary": "Загрузить изображение для реакции",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "Reaction ID",
+                        "description": "ID реакции",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "Image",
+                        "description": "Изображение",
                         "name": "image",
                         "in": "formData",
                         "required": true
@@ -846,7 +1076,14 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "status (string) и reaction (apitypes.ReactionJSON)",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный запрос/файл",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -854,8 +1091,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "404": {
+                        "description": "Реакция не найдена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -864,98 +1101,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/profile": {
-            "get": {
-                "description": "Получить личный кабинет",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get profile",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/apitypes.UserJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Изменить личный кабинет",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Change profile",
-                "parameters": [
-                    {
-                        "description": "Change profile",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/apitypes.UserJSON"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/apitypes.UserJSON"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -968,7 +1114,7 @@ const docTemplate = `{
         },
         "/users/sign-in": {
             "post": {
-                "description": "Войти",
+                "description": "Принимает логин/пароль, возвращает jwt-токен в формате {\"token\":\"...\"}.",
                 "consumes": [
                     "application/json"
                 ],
@@ -978,11 +1124,11 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Sign in",
+                "summary": "Вход (получение токена)",
                 "parameters": [
                     {
-                        "description": "Sign in",
-                        "name": "user",
+                        "description": "Логин и пароль",
+                        "name": "credentials",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -992,13 +1138,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "token",
                         "schema": {
-                            "$ref": "#/definitions/apitypes.UserJSON"
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Неверный запрос",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1007,7 +1165,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1020,20 +1178,22 @@ const docTemplate = `{
         },
         "/users/sign-out": {
             "post": {
-                "description": "Выйти",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Удаляет токен текущего пользователя из хранилища. Возвращает {\"status\":\"signed_out\"}.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "users"
                 ],
-                "summary": "Sign out",
+                "summary": "Выход (удаление токена)",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "status",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1042,7 +1202,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Проблема с получением user_id",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1051,7 +1211,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка при удалении токена",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1064,7 +1224,7 @@ const docTemplate = `{
         },
         "/users/sign-up": {
             "post": {
-                "description": "Зарегистрироваться",
+                "description": "Регистрирует нового пользователя. Возвращает URL созданного ресурса в Location и тело созданного пользователя.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1074,10 +1234,10 @@ const docTemplate = `{
                 "tags": [
                     "users"
                 ],
-                "summary": "Create user",
+                "summary": "Регистрация пользователя",
                 "parameters": [
                     {
-                        "description": "Create user",
+                        "description": "Параметры нового пользователя",
                         "name": "user",
                         "in": "body",
                         "required": true,
@@ -1088,13 +1248,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "Пользователь создан",
                         "schema": {
                             "$ref": "#/definitions/apitypes.UserJSON"
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Ошибка валидации или входных данных",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1103,7 +1263,157 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{login}/profile": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Возвращает данные профиля (доступен только тот, чей UUID совпадает с user_id в токене).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Получить профиль пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Логин пользователя",
+                        "name": "login",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Профиль пользователя",
+                        "schema": {
+                            "$ref": "#/definitions/apitypes.UserJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Проблема с авторизацией/получением user_id\"}",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Пользователи не совпадают",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Обновляет профиль пользователя (может делать только сам пользователь).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Изменить профиль пользователя",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Логин пользователя",
+                        "name": "login",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Новые данные профиля",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/apitypes.UserJSON"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Обновлённый профиль",
+                        "schema": {
+                            "$ref": "#/definitions/apitypes.UserJSON"
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка запроса или авторизации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Доступ запрещён",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Пользователь не найден",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1116,8 +1426,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "apitypes.CalculationJSON": {
-            "description": "Model for calculation",
+        "apitypes.MassCalculationJSON": {
             "type": "object",
             "properties": {
                 "creator_login": {
@@ -1147,7 +1456,6 @@ const docTemplate = `{
             }
         },
         "apitypes.ReactionCalculationJSON": {
-            "description": "Model for reaction calculation",
             "type": "object",
             "properties": {
                 "calculation_id": {
@@ -1168,7 +1476,6 @@ const docTemplate = `{
             }
         },
         "apitypes.ReactionJSON": {
-            "description": "Model for reaction",
             "type": "object",
             "properties": {
                 "conversation_factor": {
@@ -1203,12 +1510,8 @@ const docTemplate = `{
             }
         },
         "apitypes.UserJSON": {
-            "description": "Model for user",
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "integer"
-                },
                 "is_moderator": {
                     "type": "boolean"
                 },
@@ -1219,6 +1522,41 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "handler.MassCalculationResponse": {
+            "type": "object",
+            "properties": {
+                "calculation": {
+                    "$ref": "#/definitions/apitypes.MassCalculationJSON"
+                },
+                "reactions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handler.ReactionWithOutput"
+                    }
+                }
+            }
+        },
+        "handler.ReactionWithOutput": {
+            "type": "object",
+            "properties": {
+                "input_mass": {
+                    "type": "number"
+                },
+                "output_mass": {
+                    "type": "number"
+                },
+                "reaction": {
+                    "$ref": "#/definitions/apitypes.ReactionJSON"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
@@ -1227,7 +1565,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Reactions API",
 	Description:      "API для работы с реакциями",

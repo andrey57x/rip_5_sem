@@ -2,9 +2,8 @@ package apitypes
 
 import "Backend/internal/app/ds"
 
-// ReactionJSON model
-// @Description Model for reaction
-// @Tags reactions
+// ReactionJSON модель реакции
+// @ID ReactionJSON
 type ReactionJSON struct {
 	ID                 int     `json:"id"`
 	Title              string  `json:"title"`

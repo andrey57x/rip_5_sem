@@ -24,6 +24,19 @@ type ReactionWithOutput struct {
 	InputMass  float32               `json:"input_mass"`
 }
 
+// GetMassCalculation
+// @Summary Получить расчет по ID
+// @Description Возвращает расчет и список реакций, входящих в неё, с рассчитанными массами.
+// @Tags mass-calculations
+// @Produce json
+// @Param id path int true "ID расчета"
+// @Success 200 {object} MassCalculationResponse "Объект расчета с реакциями"
+// @Failure 400 {object} map[string]string "Некорректный ID"
+// @Failure 403 {object} map[string]string "Доступ запрещён"
+// @Failure 404 {object} map[string]string "Расчет не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/{id} [get]
 func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -90,6 +103,17 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, massCalculationResponse)
 }
 
+// GetMassCalculationCart
+// @Summary Получить карточку черновика расчета для пользователя
+// @Description Возвращает количество реакций в текущей корзине пользователя и ID черновика расчета (если есть).
+// @Tags mass-calculations
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Поля: id (int, -1 если нет черновика), reactions_count (int)"
+// @Failure 400 {object} map[string]string "Некорректный запрос (например, неверный токен)"}
+// @Failure 404 {object} map[string]string "Черновик не найден"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/calculation-cart [get]
 func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
@@ -123,6 +147,20 @@ func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 	})
 }
 
+// GetMassCalculations
+// @Summary Получить список расчетов
+// @Description Возвращает список расчетов с возможностью фильтрации по диапазону дат и статусу.
+// @Tags mass-calculations
+// @Produce json
+// @Param from-date query string false "Нижняя граница даты (YYYY-MM-DD)"
+// @Param to-date query string false "Верхняя граница даты (YYYY-MM-DD)"
+// @Param status query string false "Статус расчета (draft, formed, moderated, deleted)"
+// @Success 200 {array} apitypes.MassCalculationJSON "Список расчетов"
+// @Failure 400 {object} map[string]string "Неверный формат даты или параметров запроса"}
+// @Failure 404 {object} map[string]string "Не найдены записи"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations [get]
 func (h *Handler) GetMassCalculations(ctx *gin.Context) {
 	fromDate := ctx.Query("from-date")
 	var from = time.Time{}
@@ -176,6 +214,21 @@ func (h *Handler) GetMassCalculations(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
+// ChangeMassCalculation
+// @Summary Изменить поля расчета
+// @Description Обновляет расчет по ID: принимает JSON расчета и возвращает обновлённый объект.
+// @Tags mass-calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "ID расчета"
+// @Param calculation body apitypes.MassCalculationJSON true "Тело запроса — объект расчета"
+// @Success 200 {object} apitypes.MassCalculationJSON "Обновлённый расчет"
+// @Failure 400 {object} map[string]string "Неверный формат запроса или тела"
+// @Failure 403 {object} map[string]string "Доступ запрещён"
+// @Failure 404 {object} map[string]string "Расчет не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/{id} [put]
 func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -217,6 +270,19 @@ func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
+// FormMassCalculation
+// @Summary Сформировать расчет
+// @Description Переводит расчет в статус formed — доступен только создателю.
+// @Tags mass-calculations
+// @Produce json
+// @Param id path int true "ID расчета"
+// @Success 200 {object} apitypes.MassCalculationJSON "Расчет успешно сформирована"
+// @Failure 400 {object} map[string]string "Неверный формат запроса"
+// @Failure 403 {object} map[string]string "Только создатель может формировать расчет"
+// @Failure 404 {object} map[string]string "Расчет не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/{id}/form [put]
 func (h *Handler) FormMassCalculation(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
@@ -271,6 +337,19 @@ func (h *Handler) FormMassCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
 }
 
+// DeleteMassCalculation
+// @Summary Удалить расчет (логическое удаление)
+// @Description Помечает расчет как удалённый. Доступ — владелец или модератор. Возвращает {"message":"Calculation deleted"}.
+// @Tags mass-calculations
+// @Produce json
+// @Param id path int true "ID расчета"
+// @Success 200 {object} map[string]string "message"
+// @Failure 400 {object} map[string]string "Неверный формат запроса"
+// @Failure 403 {object} map[string]string "Доступ запрещён"
+// @Failure 404 {object} map[string]string "Расчет не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/{id} [delete]
 func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.Atoi(idStr)
@@ -309,6 +388,22 @@ func (h *Handler) DeleteMassCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Calculation deleted"})
 }
 
+// ModerateMassCalculation
+// @Summary Модерировать расчет (только модератор)
+// @Description Устанавливает статус расчета — только модератор может это сделать.
+// @Tags mass-calculations
+// @Accept json
+// @Produce json
+// @Param id path int true "ID расчета"
+// @Param status body apitypes.StatusJSON true "Тело запроса с полем status"
+// @Success 200 {object} apitypes.MassCalculationJSON "Расчет после модерации"
+// @Failure 400 {object} map[string]string "Некорректные входные данные"}
+// @Failure 401 {object} map[string]string "Неавторизован"}
+// @Failure 403 {object} map[string]string "Только модератор может модерацию"
+// @Failure 404 {object} map[string]string "Расчет не найдена"
+// @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
+// @Security ApiKeyAuth
+// @Router /mass-calculations/{id}/moderate [put]
 func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {

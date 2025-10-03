@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 	"os"
 	"strings"
@@ -16,9 +17,7 @@ func (h *Handler) ModeratorMiddleware(allowedRole bool) gin.HandlerFunc {
 		tokenString := extractTokenFromHeader(c.Request)
 
 		if tokenString == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"status": "unauthorized",
-			})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
@@ -30,51 +29,45 @@ func (h *Handler) ModeratorMiddleware(allowedRole bool) gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"status": "unauthorized",
-			})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"status": "unauthorized",
-			})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
 		userID, ok := claims["user_id"].(string)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"status": "unauthorized",
-			})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
-		storedToken, err := h.Repository.GetToken(userID)
-		if err != nil || storedToken != tokenString {
+		// проверяем blacklist
+		blacklisted, err := h.Repository.IsTokenBlacklisted(context.Background(), tokenString)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error"})
+			return
+		}
+		if blacklisted {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
 		jwtIsModerator, ok := claims["is_moderator"].(bool)
 		if !ok {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"status": "unauthorized",
-			})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"status": "unauthorized"})
 			return
 		}
 
 		if allowedRole && !jwtIsModerator {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-				"status": "forbidden",
-			})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"status": "forbidden"})
 			return
 		}
 
 		c.Set("user_id", userID)
-
 		c.Next()
 	}
 }

@@ -2,7 +2,10 @@
 // @version 1.0
 // @description API для работы с реакциями
 // @host localhost:8080
-// @BasePath /
+// @BasePath /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 package main
 
 import (

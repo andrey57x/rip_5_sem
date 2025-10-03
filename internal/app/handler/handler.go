@@ -2,9 +2,14 @@ package handler
 
 import (
 	"Backend/internal/app/repository"
+	"net/http"
+
+	_ "Backend/docs"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 type Handler struct {
@@ -53,6 +58,15 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	moderator := api.Group("/")
 	moderator.Use(h.ModeratorMiddleware(true))
 	moderator.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
+
+	// нужно
+	// для
+	// swagger
+	swaggerURL := ginSwagger.URL("/swagger/doc.json")
+	router.Any("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, swaggerURL))
+	router.GET("/swagger", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/swagger/index.html")
+	})
 }
 
 // RegisterStatic То же самое, что и с маршрутами, регистрируем статику

@@ -4,12 +4,11 @@ import (
 	"Backend/internal/app/ds"
 )
 
-// UserJSON model
-// @Description Model for user
-// @Tags users
+// UserJSON модель пользователя (вход/регистрация/профиль)
+// @ID UserJSON
 type UserJSON struct {
 	Login       string `json:"login"`
-	Password    string `json:"password"`
+	Password    string `json:"password,omitempty"`
 	IsModerator bool   `json:"is_moderator"`
 }
 

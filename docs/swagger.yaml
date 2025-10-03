@@ -1,7 +1,6 @@
-basePath: /
+basePath: /api/v1
 definitions:
-  apitypes.CalculationJSON:
-    description: Model for calculation
+  apitypes.MassCalculationJSON:
     properties:
       creator_login:
         type: string
@@ -21,7 +20,6 @@ definitions:
         type: string
     type: object
   apitypes.ReactionCalculationJSON:
-    description: Model for reaction calculation
     properties:
       calculation_id:
         type: integer
@@ -35,7 +33,6 @@ definitions:
         type: integer
     type: object
   apitypes.ReactionJSON:
-    description: Model for reaction
     properties:
       conversation_factor:
         type: number
@@ -58,16 +55,31 @@ definitions:
         type: string
     type: object
   apitypes.UserJSON:
-    description: Model for user
     properties:
-      id:
-        type: integer
       is_moderator:
         type: boolean
       login:
         type: string
       password:
         type: string
+    type: object
+  handler.MassCalculationResponse:
+    properties:
+      calculation:
+        $ref: '#/definitions/apitypes.MassCalculationJSON'
+      reactions:
+        items:
+          $ref: '#/definitions/handler.ReactionWithOutput'
+        type: array
+    type: object
+  handler.ReactionWithOutput:
+    properties:
+      input_mass:
+        type: number
+      output_mass:
+        type: number
+      reaction:
+        $ref: '#/definitions/apitypes.ReactionJSON'
     type: object
 host: localhost:8080
 info:
@@ -76,21 +88,20 @@ info:
   title: Reactions API
   version: "1.0"
 paths:
-  /calculations:
+  /mass-calculations:
     get:
-      consumes:
-      - application/json
-      description: Получить расчеты
+      description: Возвращает список расчетов с возможностью фильтрации по диапазону
+        дат и статусу.
       parameters:
-      - description: From date
+      - description: Нижняя граница даты (YYYY-MM-DD)
         in: query
         name: from-date
         type: string
-      - description: To date
+      - description: Верхняя граница даты (YYYY-MM-DD)
         in: query
         name: to-date
         type: string
-      - description: Status
+      - description: Статус расчета (draft, formed, moderated, deleted)
         in: query
         name: status
         type: string
@@ -98,33 +109,40 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Список расчетов
           schema:
             items:
-              $ref: '#/definitions/apitypes.CalculationJSON'
+              $ref: '#/definitions/apitypes.MassCalculationJSON'
             type: array
         "400":
-          description: Bad Request
+          description: Неверный формат даты или параметров запроса"}
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Не найдены записи
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get calculations
+      security:
+      - ApiKeyAuth: []
+      summary: Получить список расчетов
       tags:
-      - calculations
-  /calculations/{id}:
+      - mass-calculations
+  /mass-calculations/{id}:
     delete:
-      consumes:
-      - application/json
-      description: Удалить расчет
+      description: Помечает расчет как удалённый. Доступ — владелец или модератор.
+        Возвращает {"message":"Calculation deleted"}.
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
         name: id
         required: true
@@ -133,30 +151,45 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: message
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            additionalProperties:
+              type: string
+            type: object
         "400":
-          description: Bad Request
+          description: Неверный формат запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Расчет не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Delete calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить расчет (логическое удаление)
       tags:
-      - calculations
+      - mass-calculations
     get:
-      consumes:
-      - application/json
-      description: Получить расчет по id
+      description: Возвращает расчет и список реакций, входящих в неё, с рассчитанными
+        массами.
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
         name: id
         required: true
@@ -165,69 +198,96 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Объект расчета с реакциями
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/handler.MassCalculationResponse'
         "400":
-          description: Bad Request
+          description: Некорректный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Расчет не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Получить расчет по ID
       tags:
-      - calculations
+      - mass-calculations
     put:
       consumes:
       - application/json
-      description: Изменить расчет
+      description: 'Обновляет расчет по ID: принимает JSON расчета и возвращает обновлённый
+        объект.'
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
         name: id
         required: true
         type: integer
-      - description: Change calculation
+      - description: Тело запроса — объект расчета
         in: body
         name: calculation
         required: true
         schema:
-          $ref: '#/definitions/apitypes.CalculationJSON'
+          $ref: '#/definitions/apitypes.MassCalculationJSON'
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Обновлённый расчет
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "400":
-          description: Bad Request
+          description: Неверный формат запроса или тела
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Расчет не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Change calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Изменить поля расчета
       tags:
-      - calculations
-  /calculations/{id}/form:
+      - mass-calculations
+  /mass-calculations/{id}/form:
     put:
-      consumes:
-      - application/json
-      description: Сформировать расчет
+      description: Переводит расчет в статус formed — доступен только создателю.
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
         name: id
         required: true
@@ -236,36 +296,50 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Расчет успешно сформирована
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "400":
-          description: Bad Request
+          description: Неверный формат запроса
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Только создатель может формировать расчет
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Расчет не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Form calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Сформировать расчет
       tags:
-      - calculations
-  /calculations/{id}/moderate:
+      - mass-calculations
+  /mass-calculations/{id}/moderate:
     put:
       consumes:
       - application/json
-      description: Модерировать расчет
+      description: Устанавливает статус расчета — только модератор может это сделать.
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
         name: id
         required: true
         type: integer
-      - description: Moderate calculation
+      - description: Тело запроса с полем status
         in: body
         name: status
         required: true
@@ -275,65 +349,89 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Расчет после модерации
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "400":
-          description: Bad Request
+          description: Некорректные входные данные"}
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неавторизован"}
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Только модератор может модерацию
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Расчет не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Moderate calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Модерировать расчет (только модератор)
       tags:
-      - calculations
-  /calculations/calculation-cart:
+      - mass-calculations
+  /mass-calculations/calculation-cart:
     get:
-      consumes:
-      - application/json
-      description: Получить черновик расчета
+      description: Возвращает количество реакций в текущей корзине пользователя и
+        ID черновика расчета (если есть).
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: 'Поля: id (int, -1 если нет черновика), reactions_count (int)'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Некорректный запрос (например, неверный токен)"}
           schema:
             additionalProperties:
               type: string
             type: object
-        "400":
-          description: Bad Request
+        "404":
+          description: Черновик не найден
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get calculation cart
+      security:
+      - ApiKeyAuth: []
+      summary: Получить карточку черновика расчета для пользователя
       tags:
-      - calculations
-  /reaction-calculations/{calculation_id}/{reaction_id}:
+      - mass-calculations
+  /reaction-calculations/{mass_calculation_id}/{reaction_id}:
     delete:
-      consumes:
-      - application/json
-      description: Удалить реакцию из расчета
+      description: Удаляет связь реакции и расчета и возвращает обновлённый расчет.
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
-        name: calculation_id
+        name: mass_calculation_id
         required: true
         type: integer
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: reaction_id
         required: true
@@ -342,42 +440,56 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Обновлённый расчет
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "400":
-          description: Bad Request
+          description: Некорректный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Не найдено
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Delete reaction from calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить реакцию из расчета
       tags:
-      - reactions calculations
+      - reaction-calculations
     put:
       consumes:
       - application/json
-      description: Изменить поле для реакции в расчете
+      description: Обновляет поле расчёта реакции (output mass).
       parameters:
-      - description: Calculation ID
+      - description: ID расчета
         in: path
-        name: calculation_id
+        name: mass_calculation_id
         required: true
         type: integer
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: reaction_id
         required: true
         type: integer
-      - description: Change reaction calculation
+      - description: Новые значения расчёта
         in: body
-        name: reaction_calculation
+        name: body
         required: true
         schema:
           $ref: '#/definitions/apitypes.ReactionCalculationJSON'
@@ -385,31 +497,43 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Обновлённый расчёт
           schema:
             $ref: '#/definitions/apitypes.ReactionCalculationJSON'
         "400":
-          description: Bad Request
+          description: Некорректный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Не найдено
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Change reaction calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Изменить поле связи многие ко многим
       tags:
-      - reactions calculations
+      - reaction-calculations
   /reactions:
     get:
-      consumes:
-      - application/json
-      description: Получить список реакций, можно фильтровать по title
+      description: Возвращает все реакции или фильтрует по параметру reaction_title.
       parameters:
-      - description: Search by title
+      - description: Фильтр по заголовку реакции
         in: query
         name: reaction_title
         type: string
@@ -417,26 +541,27 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Список реакций
           schema:
             items:
               $ref: '#/definitions/apitypes.ReactionJSON'
             type: array
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: List reactions
+      summary: Получить список реакций
       tags:
       - reactions
     post:
       consumes:
       - application/json
-      description: Создать реакцию
+      description: Создаёт новую реакцию, возвращает Location в заголовках и объект
+        реакции.
       parameters:
-      - description: Create reaction
+      - description: Данные реакции
         in: body
         name: reaction
         required: true
@@ -446,31 +571,31 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Реакция создана
           schema:
             $ref: '#/definitions/apitypes.ReactionJSON'
         "400":
-          description: Bad Request
+          description: Неверный запрос
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Create reaction
+      security:
+      - ApiKeyAuth: []
+      summary: Создать реакцию
       tags:
       - reactions
   /reactions/{id}:
     delete:
-      consumes:
-      - application/json
-      description: Удалить реакцию
+      description: Логическое удаление реакции. Возвращает {"status":"deleted"}.
       parameters:
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: id
         required: true
@@ -479,32 +604,38 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: status
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: Bad Request
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Реакция не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Delete reaction
+      security:
+      - ApiKeyAuth: []
+      summary: Удалить реакцию
       tags:
       - reactions
     get:
-      consumes:
-      - application/json
-      description: Получить реакцию по id
+      description: Возвращает реакцию по id.
       parameters:
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: id
         required: true
@@ -513,35 +644,41 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Реакция
           schema:
             $ref: '#/definitions/apitypes.ReactionJSON'
         "400":
-          description: Bad Request
+          description: Неверный ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Реакция не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get reaction
+      summary: Получить реакцию по ID
       tags:
       - reactions
     put:
       consumes:
       - application/json
-      description: Изменить реакцию
+      description: Обновляет реакцию по ID.
       parameters:
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: id
         required: true
         type: integer
-      - description: Change reaction
+      - description: Новые данные реакции
         in: body
         name: reaction
         required: true
@@ -551,31 +688,38 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Обновлённая реакция
           schema:
             $ref: '#/definitions/apitypes.ReactionJSON'
         "400":
-          description: Bad Request
+          description: Неверный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Реакция не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Change reaction
+      security:
+      - ApiKeyAuth: []
+      summary: Обновить реакцию
       tags:
       - reactions
   /reactions/{id}/add-to-calculation:
     post:
-      consumes:
-      - application/json
-      description: Добавить реакцию в калькуляцию
+      description: Добавляет реакцию в черновик пользователя (если черновика нет —
+        создаёт). Возвращает сам расчет.
       parameters:
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: id
         required: true
@@ -584,40 +728,49 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Если добавление в существующий черновик
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "201":
-          description: Created
+          description: Если был создан новый черновик
           schema:
-            $ref: '#/definitions/apitypes.CalculationJSON'
+            $ref: '#/definitions/apitypes.MassCalculationJSON'
         "400":
-          description: Bad Request
+          description: Ошибка запроса или авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Реакция/калькуляция не найдены
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Add reaction to calculation
+      security:
+      - ApiKeyAuth: []
+      summary: Добавить реакцию в текущий черновик расчета
       tags:
-      - calculations
+      - mass-calculations
   /reactions/{id}/image:
     post:
       consumes:
       - multipart/form-data
-      description: Загрузить изображение
+      description: 'Загружает файл изображения и возвращает объект вида {"status":"uploaded",
+        "reaction": <ReactionJSON>}.'
       parameters:
-      - description: Reaction ID
+      - description: ID реакции
         in: path
         name: id
         required: true
         type: integer
-      - description: Image
+      - description: Изображение
         in: formData
         name: image
         required: true
@@ -626,59 +779,90 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: status (string) и reaction (apitypes.ReactionJSON)
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверный запрос/файл
           schema:
             additionalProperties:
               type: string
             type: object
-        "400":
-          description: Bad Request
+        "404":
+          description: Реакция не найдена
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Upload image
+      security:
+      - ApiKeyAuth: []
+      summary: Загрузить изображение для реакции
       tags:
       - reactions
-  /users/profile:
+  /users/{login}/profile:
     get:
-      consumes:
-      - application/json
-      description: Получить личный кабинет
+      description: Возвращает данные профиля (доступен только тот, чей UUID совпадает
+        с user_id в токене).
+      parameters:
+      - description: Логин пользователя
+        in: path
+        name: login
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Профиль пользователя
           schema:
             $ref: '#/definitions/apitypes.UserJSON'
         "400":
-          description: Bad Request
+          description: Проблема с авторизацией/получением user_id"}
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Пользователи не совпадают
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get profile
+      security:
+      - ApiKeyAuth: []
+      summary: Получить профиль пользователя
       tags:
       - users
     put:
       consumes:
       - application/json
-      description: Изменить личный кабинет
+      description: Обновляет профиль пользователя (может делать только сам пользователь).
       parameters:
-      - description: Change profile
+      - description: Логин пользователя
+        in: path
+        name: login
+        required: true
+        type: string
+      - description: Новые данные профиля
         in: body
         name: user
         required: true
@@ -688,33 +872,47 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Обновлённый профиль
           schema:
             $ref: '#/definitions/apitypes.UserJSON'
         "400":
-          description: Bad Request
+          description: Ошибка запроса или авторизации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Доступ запрещён
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Change profile
+      security:
+      - ApiKeyAuth: []
+      summary: Изменить профиль пользователя
       tags:
       - users
   /users/sign-in:
     post:
       consumes:
       - application/json
-      description: Войти
+      description: Принимает логин/пароль, возвращает jwt-токен в формате {"token":"..."}.
       parameters:
-      - description: Sign in
+      - description: Логин и пароль
         in: body
-        name: user
+        name: credentials
         required: true
         schema:
           $ref: '#/definitions/apitypes.UserJSON'
@@ -722,60 +920,69 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: token
           schema:
-            $ref: '#/definitions/apitypes.UserJSON'
+            additionalProperties:
+              type: string
+            type: object
         "400":
-          description: Bad Request
+          description: Неверный запрос
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Пользователь не найден
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Sign in
+      summary: Вход (получение токена)
       tags:
       - users
   /users/sign-out:
     post:
-      consumes:
-      - application/json
-      description: Выйти
+      description: Удаляет токен текущего пользователя из хранилища. Возвращает {"status":"signed_out"}.
       produces:
       - application/json
       responses:
         "200":
-          description: OK
+          description: status
           schema:
             additionalProperties:
               type: string
             type: object
         "400":
-          description: Bad Request
+          description: Проблема с получением user_id
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка при удалении токена
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Sign out
+      security:
+      - ApiKeyAuth: []
+      summary: Выход (удаление токена)
       tags:
       - users
   /users/sign-up:
     post:
       consumes:
       - application/json
-      description: Зарегистрироваться
+      description: Регистрирует нового пользователя. Возвращает URL созданного ресурса
+        в Location и тело созданного пользователя.
       parameters:
-      - description: Create user
+      - description: Параметры нового пользователя
         in: body
         name: user
         required: true
@@ -785,22 +992,27 @@ paths:
       - application/json
       responses:
         "201":
-          description: Created
+          description: Пользователь создан
           schema:
             $ref: '#/definitions/apitypes.UserJSON'
         "400":
-          description: Bad Request
+          description: Ошибка валидации или входных данных
           schema:
             additionalProperties:
               type: string
             type: object
         "500":
-          description: Internal Server Error
+          description: Внутренняя ошибка сервера
           schema:
             additionalProperties:
               type: string
             type: object
-      summary: Create user
+      summary: Регистрация пользователя
       tags:
       - users
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

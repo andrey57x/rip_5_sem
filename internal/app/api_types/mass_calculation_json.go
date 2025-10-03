@@ -5,9 +5,8 @@ import (
 	"time"
 )
 
-// MassCalculationJSON model
-// @Description Model for calculation
-// @Tags calculations
+// MassCalculationJSON модель вычисления массы
+// @ID MassCalculationJSON
 type MassCalculationJSON struct {
 	ID             int        `json:"id"`
 	OutputKoef     *float32   `json:"output_koef"`
