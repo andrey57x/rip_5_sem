@@ -243,17 +243,27 @@ func (h *Handler) ChangeMassCalculation(ctx *gin.Context) {
 		return
 	}
 
-	calculation, err := h.Repository.ChangeMassCalculation(id, calculationJSON)
+	calculation, err := h.Repository.GetSingleMassCalculation(id)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+	if calculation.Status != "draft" {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
+	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
+		h.errorHandler(ctx, http.StatusForbidden, err)
+		return
+	}
+
+	calculation, err = h.Repository.ChangeMassCalculation(id, calculationJSON)
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
-		h.errorHandler(ctx, http.StatusForbidden, err)
 		return
 	}
 

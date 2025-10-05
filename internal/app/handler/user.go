@@ -242,31 +242,39 @@ func (h *Handler) FillWithUsers() {
 }
 
 func tokenTTLFromClaims(claims jwt.MapClaims) (time.Duration, error) {
-	expVal, ok := claims["exp"]
-	if !ok {
-		return 0, errors.New("exp not present")
-	}
+    expVal, ok := claims["exp"]
+    if !ok {
+        return 0, errors.New("exp not present")
+    }
 
-	var expUnix int64
-	switch v := expVal.(type) {
-	case float64:
-		expUnix = int64(v)
-	case int64:
-		expUnix = v
-	case json.Number:
-		i, err := v.Int64()
-		if err != nil {
-			return 0, err
-		}
-		expUnix = i
-	default:
-		return 0, fmt.Errorf("unsupported exp type %T", v)
-	}
+    var expUnix int64
+    switch v := expVal.(type) {
+    case float64:
+        expUnix = int64(v)
+    case int64:
+        expUnix = v
+    case json.Number:
+        i, err := v.Int64()
+        if err != nil {
+            return 0, err
+        }
+        expUnix = i
+    default:
+        return 0, fmt.Errorf("unsupported exp type %T", v)
+    }
 
-	expTime := time.Unix(expUnix, 0)
-	ttl := time.Until(expTime)
-	if ttl < 0 {
-		return 0, errors.New("token already expired")
-	}
-	return ttl, nil
+    var expTime time.Time
+    if expUnix > 1e12 {
+        expTime = time.UnixMilli(expUnix)
+    } else {
+        expTime = time.Unix(expUnix, 0)
+    }
+
+    ttl := time.Until(expTime)
+    if ttl < 0 {
+        return 0, errors.New("token already expired")
+    }
+
+    return ttl, nil
 }
+

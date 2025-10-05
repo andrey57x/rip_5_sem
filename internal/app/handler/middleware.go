@@ -45,7 +45,6 @@ func (h *Handler) ModeratorMiddleware(allowedRole bool) gin.HandlerFunc {
 			return
 		}
 
-		// проверяем blacklist
 		blacklisted, err := h.Repository.IsTokenBlacklisted(context.Background(), tokenString)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"status": "error"})
