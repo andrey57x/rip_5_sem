@@ -35,11 +35,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	authorized := api.Group("/")
 	authorized.Use(h.ModeratorMiddleware(false))
 
-	authorized.POST("/reactions", h.CreateReaction)
-	authorized.PUT("/reactions/:id", h.ChangeReaction)
-	authorized.DELETE("/reactions/:id", h.DeleteReaction)
 	authorized.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
-	authorized.POST("/reactions/:id/image", h.UploadImage)
 
 	authorized.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
 	authorized.GET("/mass-calculations", h.GetMassCalculations)
@@ -58,6 +54,10 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	moderator := api.Group("/")
 	moderator.Use(h.ModeratorMiddleware(true))
 	moderator.PUT("/mass-calculations/:id/moderate", h.ModerateMassCalculation)
+	moderator.POST("/reactions", h.CreateReaction)
+	moderator.PUT("/reactions/:id", h.ChangeReaction)
+	moderator.DELETE("/reactions/:id", h.DeleteReaction)
+	moderator.POST("/reactions/:id/image", h.UploadImage)
 
 	// нужно
 	// для
