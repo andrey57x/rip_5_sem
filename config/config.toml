@@ -1,2 +1,2 @@
-ServiceHost = "127.0.0.1"
-ServicePort = 8080
+ServiceHost = "0.0.0.0"
+ServicePort = 8006

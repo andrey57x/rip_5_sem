@@ -1,16 +1,9 @@
-// @title Reactions API
-// @version 1.0
-// @description API для работы с реакциями
-// @host localhost:8080
-// @BasePath /api/v1
-// @securityDefinitions.apikey ApiKeyAuth
-// @in header
-// @name Authorization
 package main
 
 import (
 	"fmt"
-
+	
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 	"Backend/internal/app/config"
@@ -22,6 +15,13 @@ import (
 
 func main() {
 	router := gin.Default()
+
+	configCors := cors.DefaultConfig()
+	configCors.AllowOrigins = []string{"https://andrey57x.github.io"}
+	configCors.AllowCredentials = true
+	
+	router.Use(cors.New(configCors))
+
 	conf, err := config.NewConfig()
 	if err != nil {
 		logrus.Fatalf("error loading config: %v", err)
