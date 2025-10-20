@@ -103,7 +103,7 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, massCalculationResponse)
 }
 
-// GetMassCalculationCart
+// GetIconCart
 // @Summary Получить карточку черновика расчета для пользователя
 // @Description Возвращает количество реакций в текущей корзине пользователя и ID черновика расчета (если есть).
 // @Tags mass-calculations
@@ -114,10 +114,13 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Security ApiKeyAuth
 // @Router /mass-calculations/calculation-cart [get]
-func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
+func (h *Handler) GetIconCart(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
+		ctx.JSON(http.StatusOK, gin.H{
+			"id":              -1,
+			"reactions_count": 0,
+		})
 		return
 	}
 
@@ -144,6 +147,7 @@ func (h *Handler) GetMassCalculationCart(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"reactions_count": reactionsCount,
 		"id":              calculation.ID,
+		"cart_icon":       "localhost:9000/img/cart.png",
 	})
 }
 

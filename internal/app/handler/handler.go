@@ -31,13 +31,14 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	unauthorized.POST("/users/sign-up", h.SignUp)
 	unauthorized.GET("/reactions", h.GetReactions)
 	unauthorized.GET("/reactions/:id", h.GetReaction)
+	unauthorized.GET("/mass-calculations/mass-calculation-cart-icon", h.GetIconCart)
+
 
 	authorized := api.Group("/")
 	authorized.Use(h.ModeratorMiddleware(false))
 
 	authorized.POST("/reactions/:id/add-to-calculation", h.AddReactionToCalculation)
 
-	authorized.GET("/mass-calculations/calculation-cart", h.GetMassCalculationCart)
 	authorized.GET("/mass-calculations", h.GetMassCalculations)
 	authorized.GET("/mass-calculations/:id", h.GetMassCalculation)
 	authorized.PUT("/mass-calculations/:id", h.ChangeMassCalculation)
