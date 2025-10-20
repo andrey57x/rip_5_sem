@@ -1,24 +1,34 @@
 package main
 
 import (
+	"slices"
 	"fmt"
-	
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+
 	"Backend/internal/app/config"
 	"Backend/internal/app/dsn"
 	"Backend/internal/app/handler"
 	"Backend/internal/app/repository"
 	"Backend/internal/pkg"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
+
 
 func main() {
 	router := gin.Default()
 
 	configCors := cors.DefaultConfig()
-	configCors.AllowOrigins = []string{"https://andrey57x.github.io"}
-	configCors.AllowCredentials = true
+
+	allowed := []string{"https://andrey57x.github.io", "tauri://localhost"}
+
+    configCors.AllowOriginFunc = func(origin string) bool {
+        return slices.Contains(allowed, origin)
+    }
+
+    configCors.AllowCredentials = true
+    
 	
 	router.Use(cors.New(configCors))
 
