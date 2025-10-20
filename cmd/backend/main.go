@@ -21,7 +21,7 @@ func main() {
 
 	configCors := cors.DefaultConfig()
 
-	allowed := []string{"https://andrey57x.github.io", "tauri://localhost"}
+	allowed := []string{"https://andrey57x.github.io", "tauri://localhost", "http://localhost:3000"}
 
     configCors.AllowOriginFunc = func(origin string) bool {
         return slices.Contains(allowed, origin)
