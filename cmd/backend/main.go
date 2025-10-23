@@ -1,8 +1,8 @@
 package main
 
 import (
-	"slices"
 	"fmt"
+	"slices"
 
 	"Backend/internal/app/config"
 	"Backend/internal/app/dsn"
@@ -18,19 +18,8 @@ import (
 
 func main() {
 	router := gin.Default()
-
-	configCors := cors.DefaultConfig()
-
-	allowed := []string{"https://andrey57x.github.io", "tauri://localhost", "http://localhost:3000"}
-
-    configCors.AllowOriginFunc = func(origin string) bool {
-        return slices.Contains(allowed, origin)
-    }
-
-    configCors.AllowCredentials = true
-    
 	
-	router.Use(cors.New(configCors))
+	// addCORS(router)
 
 	conf, err := config.NewConfig()
 	if err != nil {
@@ -49,4 +38,19 @@ func main() {
 
 	application := pkg.NewApp(conf, router, hand)
 	application.RunApp()
+}
+
+func addCORS(router *gin.Engine) {
+	configCors := cors.DefaultConfig()
+
+	allowed := []string{"https://andrey57x.github.io", "tauri://localhost", "http://localhost:3000"}
+
+    configCors.AllowOriginFunc = func(origin string) bool {
+        return slices.Contains(allowed, origin)
+    }
+
+    configCors.AllowCredentials = true
+    
+	
+	router.Use(cors.New(configCors))
 }
