@@ -91,31 +91,37 @@ func (h *Handler) SignIn(ctx *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /users/{login}/profile [get]
 func (h *Handler) GetProfile(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+	userIDFromToken, err := getUserID(ctx)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusUnauthorized, err)
+		return
+	}
+
+	idFromURL := ctx.Param("id")
+	idUUID, err := uuid.Parse(idFromURL)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	login := ctx.Param("login")
-
-	user, err := h.Repository.GetUserByLogin(login)
-	if err == repository.ErrorNotFound {
+	user, err := h.Repository.GetUserByID(userIDFromToken)
+	if err != nil {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
+
+	if !user.IsModerator && idUUID != userIDFromToken {
+		h.errorHandler(ctx, http.StatusForbidden, errors.New("you have no access to this profile"))
+		return
+	}
+
+	user, err = h.Repository.GetUserByID(idUUID)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
+		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
 
-	if user.UUID != userID {
-		h.errorHandler(ctx, http.StatusForbidden, errors.New("users do not match"))
-		return
-	}
-
-	user.Password=""
-
+	user.Password = ""
 	ctx.JSON(http.StatusOK, apitypes.UserToJSON(user))
 }
 
@@ -135,13 +141,17 @@ func (h *Handler) GetProfile(ctx *gin.Context) {
 // @Security ApiKeyAuth
 // @Router /users/{login}/profile [put]
 func (h *Handler) ChangeProfile(ctx *gin.Context) {
-	userID, err := getUserID(ctx)
+	userIDFromToken, err := getUserID(ctx)
 	if err != nil {
-		h.errorHandler(ctx, http.StatusBadRequest, err)
+		h.errorHandler(ctx, http.StatusUnauthorized, err)
 		return
 	}
 
-	login := ctx.Param("login")
+	idFromURL := ctx.Param("id")
+	if idFromURL != userIDFromToken.String() {
+		h.errorHandler(ctx, http.StatusForbidden, errors.New("you can only change your own profile"))
+		return
+	}
 
 	var userJSON apitypes.UserJSON
 	if err := ctx.BindJSON(&userJSON); err != nil {
@@ -149,30 +159,13 @@ func (h *Handler) ChangeProfile(ctx *gin.Context) {
 		return
 	}
 
-	user, err := h.Repository.GetUserByLogin(login)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
+	updatedUser, err := h.Repository.ChangeProfile(userIDFromToken, userJSON)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if user.UUID != userID {
-		h.errorHandler(ctx, http.StatusForbidden, err)
-		return
-	}
-
-	user, err = h.Repository.ChangeProfile(login, userJSON)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
-	if err != nil {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	ctx.JSON(http.StatusOK, apitypes.UserToJSON(user))
+	
+	ctx.JSON(http.StatusOK, apitypes.UserToJSON(updatedUser))
 }
 
 // SignOut

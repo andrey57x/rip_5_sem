@@ -19,7 +19,7 @@ import (
 func main() {
 	router := gin.Default()
 	
-	// addCORS(router)
+	addCORS(router)
 
 	conf, err := config.NewConfig()
 	if err != nil {
@@ -43,7 +43,7 @@ func main() {
 func addCORS(router *gin.Engine) {
 	configCors := cors.DefaultConfig()
 
-	allowed := []string{"https://andrey57x.github.io", "tauri://localhost", "http://localhost:3000"}
+	allowed := []string{"https://andrey57x.github.io", "tauri://localhost", "http://localhost:3000", "https://localhost:3000"}
 
     configCors.AllowOriginFunc = func(origin string) bool {
         return slices.Contains(allowed, origin)

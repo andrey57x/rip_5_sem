@@ -21,7 +21,7 @@ func ReactionToJSON(r ds.Reaction) ReactionJSON {
 		Reagent:            r.Reagent,
 		Product:            r.Product,
 		ConversationFactor: r.ConversationFactor,
-		ImgLink:            "https://storage-reagent-mass.duckdns.org/img/" + r.ImgLink,
+		ImgLink:            "/img/" + r.ImgLink,
 		Description:        r.Description,
 	}
 }

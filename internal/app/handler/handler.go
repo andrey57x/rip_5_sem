@@ -22,7 +22,6 @@ func NewHandler(r *repository.Repository) *Handler {
 	}
 }
 
-// RegisterHandler Функция, в которой мы отдельно регистрируем маршруты, чтобы не писать все в одном месте
 func (h *Handler) RegisterHandler(router *gin.Engine) {
 	api := router.Group("/api/v1")
 
@@ -31,7 +30,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	unauthorized.POST("/users/sign-up", h.SignUp)
 	unauthorized.GET("/reactions", h.GetReactions)
 	unauthorized.GET("/reactions/:id", h.GetReaction)
-	unauthorized.GET("/mass-calculations/mass-calculation-cart-icon", h.GetIconCart)
+	unauthorized.GET("/mass-calculations/mass-calculation-cart-icon", h.OptionalAuthMiddleware(), h.GetIconCart)
 
 
 	authorized := api.Group("/")
@@ -48,8 +47,8 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	authorized.DELETE("/reaction-calculations/:mass_calculation_id/:reaction_id", h.DeleteReactionFromCalculation)
 	authorized.PUT("/reaction-calculations/:mass_calculation_id/:reaction_id", h.ChangeReactionCalculation)
 
-	authorized.GET("/users/:login/profile", h.GetProfile)
-	authorized.PUT("/users/:login/profile", h.ChangeProfile)
+	authorized.GET("/users/:id/profile", h.GetProfile)
+	authorized.PUT("/users/:id/profile", h.ChangeProfile)
 	authorized.POST("/users/sign-out", h.SignOut)
 
 	moderator := api.Group("/")

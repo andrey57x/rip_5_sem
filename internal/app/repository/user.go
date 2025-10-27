@@ -71,8 +71,8 @@ func (r *Repository) CreateUser(userJSON apitypes.UserJSON) (ds.User, error) {
 	return user, nil
 }
 
-func (r *Repository) ChangeProfile(login string, userJSON apitypes.UserJSON) (ds.User, error) {
-	currUser, err := r.GetUserByLogin(login)
+func (r *Repository) ChangeProfile(id uuid.UUID, userJSON apitypes.UserJSON) (ds.User, error) {
+	currUser, err := r.GetUserByID(id)
 	if err != nil {
 		return ds.User{}, err
 	}
@@ -108,10 +108,10 @@ func (r *Repository) SignIn(userJSON apitypes.UserJSON) (string, error) {
 	}
 
 	if !CheckPasswordHash(userJSON.Password, user.Password) {
-		return "", errors.New("invalid password")
+		return "", ErrorNotFound
 	}
 
-	token, err := GenerateToken(user.UUID, user.IsModerator)
+	token, err := GenerateToken(user.UUID, user.Login, user.IsModerator)
 	if err != nil {
 		return "", err
 	}
@@ -119,12 +119,14 @@ func (r *Repository) SignIn(userJSON apitypes.UserJSON) (string, error) {
 	return token, nil
 }
 
-func GenerateToken(id uuid.UUID, isModerator bool) (string, error) {
+
+func GenerateToken(id uuid.UUID, login string, isModerator bool) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
 	claims := token.Claims.(jwt.MapClaims)
 	claims["authorized"] = true
 	claims["user_id"] = id.String()
+	claims["login"] = login
 	claims["is_moderator"] = isModerator
 	claims["exp"] = time.Now().Add(time.Hour * 1).Unix()
 

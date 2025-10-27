@@ -113,13 +113,17 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 // @Failure 404 {object} map[string]string "Черновик не найден"
 // @Failure 500 {object} map[string]string "Внутренняя ошибка сервера"
 // @Security ApiKeyAuth
-// @Router /mass-calculations/calculation-cart [get]
+// @Router /mass-calculations/mass-calculation-cart-icon [get]
 func (h *Handler) GetIconCart(ctx *gin.Context) {
 	userID, err := getUserID(ctx)
+
+	cartIcon := "/img/calculator.png"
+
 	if err != nil {
 		ctx.JSON(http.StatusOK, gin.H{
 			"id":              -1,
 			"reactions_count": 0,
+			"cart_icon":       cartIcon,
 		})
 		return
 	}
@@ -130,6 +134,7 @@ func (h *Handler) GetIconCart(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{
 			"id":              -1,
 			"reactions_count": reactionsCount,
+			"cart_icon":       cartIcon,
 		})
 		return
 	}
@@ -147,7 +152,7 @@ func (h *Handler) GetIconCart(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"reactions_count": reactionsCount,
 		"id":              calculation.ID,
-		"cart_icon":       "localhost:9000/img/cart.png",
+		"cart_icon":       cartIcon,
 	})
 }
 
@@ -494,12 +499,13 @@ func (h *Handler) filterCalculationsByAuth(calculations []ds.MassCalculation, ct
 		return calculations
 	}
 
+	result := []ds.MassCalculation{}
 	for _, calculation := range calculations {
-		if calculation.CreatorID == userID {
-			return []ds.MassCalculation{calculation}
+		if calculation.Status != "draft" && calculation.Status != "deleted" && calculation.CreatorID == userID {
+			result = append(result, calculation)
 		}
 	}
-	return []ds.MassCalculation{}
+	return result
 }
 
 func (h *Handler) hasAccessToCalculation(creatorID uuid.UUID, ctx *gin.Context) bool {
