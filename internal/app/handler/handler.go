@@ -31,7 +31,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	unauthorized.GET("/reactions", h.GetReactions)
 	unauthorized.GET("/reactions/:id", h.GetReaction)
 	unauthorized.GET("/mass-calculations/mass-calculation-cart-icon", h.OptionalAuthMiddleware(), h.GetIconCart)
-
+	unauthorized.POST("/calculations/update-result", h.UpdateCalculationResult)
 
 	authorized := api.Group("/")
 	authorized.Use(h.ModeratorMiddleware(false))

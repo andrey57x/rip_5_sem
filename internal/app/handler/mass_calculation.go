@@ -4,6 +4,8 @@ import (
 	apitypes "Backend/internal/app/api_types"
 	"Backend/internal/app/ds"
 	"Backend/internal/app/repository"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -11,17 +13,46 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
+const ASYNC_SERVICE_URL = "http://django-service:8000/api/calculate/"
+const SECRET_KEY = "my_super_secret_key"
+
 type MassCalculationResponse struct {
-	Reactions       []ReactionWithOutput         `json:"reactions"`
-	MassCalculation apitypes.MassCalculationJSON `json:"calculation"`
+	Reactions               []ReactionWithOutput         `json:"reactions"`
+	MassCalculation         apitypes.MassCalculationJSON `json:"calculation"`
+	TotalReactionsCount     int                          `json:"total_reactions_count"`
+	CompletedReactionsCount int                          `json:"completed_reactions_count"`
 }
 
 type ReactionWithOutput struct {
 	Reaction   apitypes.ReactionJSON `json:"reaction"`
 	OutputMass float32               `json:"output_mass"`
 	InputMass  float32               `json:"input_mass"`
+}
+
+type AsyncCalcReactionPayload struct {
+	ID                 int     `json:"id"`
+	ConversationFactor float32 `json:"conversation_factor"`
+	OutputMass         float32 `json:"output_mass"`
+	OutputKoef         float32 `json:"output_koef"`
+}
+
+type AsyncCalcPayload struct {
+	CalculationID int                        `json:"calculation_id"`
+	Reactions     []AsyncCalcReactionPayload `json:"reactions"`
+}
+
+type AsyncResult struct {
+	ReactionID int     `json:"reaction_id"`
+	InputMass  float32 `json:"input_mass"`
+}
+
+type AsyncCallbackPayload struct {
+	CalculationID int           `json:"calculation_id"`
+	Results       []AsyncResult `json:"results"`
+	Token         string        `json:"token"`
 }
 
 // GetMassCalculation
@@ -46,11 +77,7 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	}
 
 	reactions, calculation, err := h.Repository.GetMassCalculationReactions(id)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
-	if err == repository.ErrorDeleted {
+	if err == repository.ErrorNotFound || err == repository.ErrorDeleted {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
 	}
@@ -58,16 +85,19 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
 	if !h.hasAccessToCalculation(calculation.CreatorID, ctx) {
 		h.errorHandler(ctx, http.StatusForbidden, err)
 		return
 	}
 
-	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
+	completedCount, err := h.Repository.GetCompletedReactionsCount(id)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
+
+	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -76,31 +106,28 @@ func (h *Handler) GetMassCalculation(ctx *gin.Context) {
 	calculationJSON := apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin)
 
 	reactionsWithOutput := make([]ReactionWithOutput, len(reactions))
-
 	for i, reaction := range reactions {
 		output, err := h.Repository.GetReactionCalculation(reaction.ID, calculation.ID)
-
 		if err != nil {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 			return
 		}
-
-		outputMass := output.OutputMass
-		inputMass := output.InputMass
-
 		reactionsWithOutput[i] = ReactionWithOutput{
 			Reaction:   apitypes.ReactionToJSON(reaction),
-			OutputMass: outputMass,
-			InputMass:  inputMass,
+			OutputMass: output.OutputMass,
+			InputMass:  output.InputMass,
 		}
 	}
 
 	massCalculationResponse := MassCalculationResponse{
-		Reactions:       reactionsWithOutput,
-		MassCalculation: calculationJSON,
+		Reactions:               reactionsWithOutput,
+		MassCalculation:         calculationJSON,
+		TotalReactionsCount:     len(reactions),
+		CompletedReactionsCount: completedCount,
 	}
-
+	
 	ctx.JSON(http.StatusOK, massCalculationResponse)
+	// --- КОНЕЦ ИЗМЕНЕНИЙ ---
 }
 
 // GetIconCart
@@ -458,7 +485,6 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	}
 
 	calculation, err := h.Repository.ModerateMassCalculation(id, statusJSON.Status, userID)
-
 	if err == repository.ErrorNotFound {
 		h.errorHandler(ctx, http.StatusNotFound, err)
 		return
@@ -466,6 +492,55 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
+	}
+
+	if statusJSON.Status == "completed" {
+		reactions, _, err := h.Repository.GetMassCalculationReactions(calculation.ID)
+		if err != nil {
+			h.errorHandler(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		payloadReactions := make([]AsyncCalcReactionPayload, 0, len(reactions))
+		for _, r := range reactions {
+			rc, err := h.Repository.GetReactionCalculation(r.ID, calculation.ID)
+			if err != nil {
+				continue
+			}
+			payloadReactions = append(payloadReactions, AsyncCalcReactionPayload{
+				ID:                 r.ID,
+				ConversationFactor: r.ConversationFactor,
+				OutputMass:         rc.OutputMass,
+				OutputKoef:         calculation.OutputKoef,
+			})
+		}
+
+		payload := AsyncCalcPayload{
+			CalculationID: calculation.ID,
+			Reactions:     payloadReactions,
+		}
+
+		go func() {
+			jsonData, err := json.Marshal(payload)
+			if err != nil {
+				logrus.Errorf("Error marshaling payload for calc ID %d: %v", calculation.ID, err)
+				return
+			}
+
+			resp, err := http.Post(ASYNC_SERVICE_URL, "application/json", bytes.NewBuffer(jsonData))
+			if err != nil {
+				logrus.Errorf("Error calling async service for calc ID %d: %v", calculation.ID, err)
+				return
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusAccepted {
+				logrus.Errorf("Async service returned non-202 status for calc ID %d: %s", calculation.ID, resp.Status)
+				return
+			}
+
+			logrus.Infof("Successfully sent task to async service for calculation ID %d", calculation.ID)
+		}()
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
@@ -479,6 +554,33 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, apitypes.MassCalculationToJSON(calculation, creatorLogin, moderatorLogin))
+}
+
+func (h *Handler) UpdateCalculationResult(ctx *gin.Context) {
+	var payload AsyncCallbackPayload
+	if err := ctx.BindJSON(&payload); err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if payload.Token != SECRET_KEY {
+		h.errorHandler(ctx, http.StatusForbidden, errors.New("invalid secret token"))
+		return
+	}
+
+	logrus.Infof("Received calculation results for calculation ID %d", payload.CalculationID)
+
+	for _, result := range payload.Results {
+		err := h.Repository.UpdateReactionCalculationResult(payload.CalculationID, result.ReactionID, result.InputMass)
+		if err != nil {
+			logrus.Errorf(
+				"Failed to update result for calcID %d, reactionID %d: %v",
+				payload.CalculationID, result.ReactionID, err,
+			)
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
 func (h *Handler) filterCalculationsByAuth(calculations []ds.MassCalculation, ctx *gin.Context) []ds.MassCalculation {

@@ -188,28 +188,28 @@ func (r *Repository) ModerateMassCalculation(id int, status string, currUserId u
 		return ds.MassCalculation{}, err
 	}
 
-	if status == "completed" {
-		reactionCalculations, err := r.GetReactionCalculations(calculation.ID)
-		if err != nil {
-			return ds.MassCalculation{}, err
-		}
-		for _, reactionCalculation := range reactionCalculations {
-			reaction, err := r.GetReaction(reactionCalculation.ReactionID)
-			if err != nil {
-				return ds.MassCalculation{}, err
-			}
-			mass, err := CalculateMass(reactionCalculation.OutputMass, reaction.ConversationFactor, calculation.OutputKoef)
-			if err != nil {
-				return ds.MassCalculation{}, err
-			}
-			err = r.db.Model(&reactionCalculation).Updates(ds.ReactionCalculation{
-				InputMass: mass,
-			}).Error
-			if err != nil {
-				return ds.MassCalculation{}, err
-			}
-		}
-	}
-
 	return calculation, nil
+}
+
+func (r *Repository) UpdateReactionCalculationResult(calculationID, reactionID int, inputMass float32) error {
+	result := r.db.Model(&ds.ReactionCalculation{}).
+		Where("calculation_id = ? AND reaction_id = ?", calculationID, reactionID).
+		Update("input_mass", inputMass)
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrorNotFound
+	}
+	return nil
+}
+
+func (r *Repository) GetCompletedReactionsCount(calculationID int) (int, error) {
+	var count int64
+	err := r.db.Model(&ds.ReactionCalculation{}).
+		Where("calculation_id = ? AND input_mass IS NOT NULL AND input_mass != 0", calculationID).
+		Count(&count).Error
+	
+	return int(count), err
 }
