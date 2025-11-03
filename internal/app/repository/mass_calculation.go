@@ -88,7 +88,7 @@ func (r *Repository) GetMassCalculationDraft(creatorID uuid.UUID) (ds.MassCalcul
 
 func (r *Repository) GetMassCalculations(from, to time.Time, status string) ([]ds.MassCalculation, error) {
 	var calculations []ds.MassCalculation
-	sub := r.db.Where("status != 'deleted'")
+	sub := r.db.Where("status != 'deleted' and status != 'draft'")
 	if !from.IsZero() {
 		sub = sub.Where("date_create > ?", from)
 	}

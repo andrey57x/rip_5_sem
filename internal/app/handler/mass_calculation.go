@@ -50,7 +50,6 @@ type AsyncResult struct {
 }
 
 type AsyncCallbackPayload struct {
-	CalculationID int           `json:"calculation_id"`
 	Results       []AsyncResult `json:"results"`
 	Token         string        `json:"token"`
 }
@@ -471,24 +470,16 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 	}
 
 	user, err := h.Repository.GetUserByID(userID)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusInternalServerError, err)
-		return
-	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if !user.IsModerator {
-		h.errorHandler(ctx, http.StatusForbidden, err)
+		h.errorHandler(ctx, http.StatusForbidden, errors.New("only moderator can moderate"))
 		return
 	}
 
 	calculation, err := h.Repository.ModerateMassCalculation(id, statusJSON.Status, userID)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
 		return
@@ -500,7 +491,7 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 			h.errorHandler(ctx, http.StatusInternalServerError, err)
 			return
 		}
-
+		
 		payloadReactions := make([]AsyncCalcReactionPayload, 0, len(reactions))
 		for _, r := range reactions {
 			rc, err := h.Repository.GetReactionCalculation(r.ID, calculation.ID)
@@ -526,7 +517,7 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 				logrus.Errorf("Error marshaling payload for calc ID %d: %v", calculation.ID, err)
 				return
 			}
-
+			
 			resp, err := http.Post(ASYNC_SERVICE_URL, "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
 				logrus.Errorf("Error calling async service for calc ID %d: %v", calculation.ID, err)
@@ -538,16 +529,12 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 				logrus.Errorf("Async service returned non-202 status for calc ID %d: %s", calculation.ID, resp.Status)
 				return
 			}
-
+			
 			logrus.Infof("Successfully sent task to async service for calculation ID %d", calculation.ID)
 		}()
 	}
 
 	creatorLogin, moderatorLogin, err := h.Repository.GetModeratorAndCreatorLogin(calculation)
-	if err == repository.ErrorNotFound {
-		h.errorHandler(ctx, http.StatusNotFound, err)
-		return
-	}
 	if err != nil {
 		h.errorHandler(ctx, http.StatusInternalServerError, err)
 		return
@@ -557,6 +544,13 @@ func (h *Handler) ModerateMassCalculation(ctx *gin.Context) {
 }
 
 func (h *Handler) UpdateCalculationResult(ctx *gin.Context) {
+	idStr := ctx.Param("id")
+	calculationID, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.errorHandler(ctx, http.StatusBadRequest, errors.New("invalid calculation id in URL"))
+		return
+	}
+	
 	var payload AsyncCallbackPayload
 	if err := ctx.BindJSON(&payload); err != nil {
 		h.errorHandler(ctx, http.StatusBadRequest, err)
@@ -568,14 +562,14 @@ func (h *Handler) UpdateCalculationResult(ctx *gin.Context) {
 		return
 	}
 
-	logrus.Infof("Received calculation results for calculation ID %d", payload.CalculationID)
+	logrus.Infof("Received calculation results for calculation ID %d", calculationID)
 
 	for _, result := range payload.Results {
-		err := h.Repository.UpdateReactionCalculationResult(payload.CalculationID, result.ReactionID, result.InputMass)
+		err := h.Repository.UpdateReactionCalculationResult(calculationID, result.ReactionID, result.InputMass)
 		if err != nil {
 			logrus.Errorf(
 				"Failed to update result for calcID %d, reactionID %d: %v",
-				payload.CalculationID, result.ReactionID, err,
+				calculationID, result.ReactionID, err,
 			)
 		}
 	}
@@ -603,7 +597,7 @@ func (h *Handler) filterCalculationsByAuth(calculations []ds.MassCalculation, ct
 
 	result := []ds.MassCalculation{}
 	for _, calculation := range calculations {
-		if calculation.Status != "draft" && calculation.Status != "deleted" && calculation.CreatorID == userID {
+		if calculation.CreatorID == userID {
 			result = append(result, calculation)
 		}
 	}

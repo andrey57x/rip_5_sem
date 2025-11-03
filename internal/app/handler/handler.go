@@ -31,7 +31,7 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	unauthorized.GET("/reactions", h.GetReactions)
 	unauthorized.GET("/reactions/:id", h.GetReaction)
 	unauthorized.GET("/mass-calculations/mass-calculation-cart-icon", h.OptionalAuthMiddleware(), h.GetIconCart)
-	unauthorized.POST("/calculations/update-result", h.UpdateCalculationResult)
+	unauthorized.POST("/mass-calculations/:id/update-result", h.UpdateCalculationResult)
 
 	authorized := api.Group("/")
 	authorized.Use(h.ModeratorMiddleware(false))
@@ -69,13 +69,11 @@ func (h *Handler) RegisterHandler(router *gin.Engine) {
 	})
 }
 
-// RegisterStatic То же самое, что и с маршрутами, регистрируем статику
 func (h *Handler) RegisterStatic(router *gin.Engine) {
 	router.LoadHTMLGlob("templates/*")
 	router.Static("/static/styles", "./static/styles")
 }
 
-// errorHandler для более удобного вывода ошибок
 func (h *Handler) errorHandler(ctx *gin.Context, errorStatusCode int, err error) {
 	logrus.Error(err.Error())
 	ctx.JSON(errorStatusCode, gin.H{
