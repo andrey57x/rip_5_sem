@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 
+	"Backend/cmd/migrate"
 	"Backend/internal/app/config"
 	"Backend/internal/app/dsn"
 	"Backend/internal/app/handler"
@@ -28,6 +29,8 @@ func main() {
 
 	postgresString := dsn.FromEnv()
 	fmt.Println(postgresString)
+
+	migrate.Migrate(postgresString)
 
 	rep, errRep := repository.NewRepository(postgresString)
 	if errRep != nil {
